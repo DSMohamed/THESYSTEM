@@ -12,6 +12,8 @@
   --darker-bg: #050508;
   --card-bg: rgba(15, 15, 25, 0.8);
   --border-glow: rgba(139, 92, 246, 0.5);
+  --animation-duration: 1s;
+  --transition-duration: 0.3s;
 }
 
 * {
@@ -91,7 +93,7 @@ body {
   bottom: 0;
   background: linear-gradient(45deg, transparent 30%, rgba(139, 92, 246, 0.1) 50%, transparent 70%);
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--transition-duration) ease;
   pointer-events: none;
 }
 
@@ -189,7 +191,7 @@ body {
   letter-spacing: 1px;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all var(--transition-duration) ease;
   min-height: 44px; /* Touch-friendly minimum */
 }
 
@@ -226,6 +228,7 @@ body {
   height: 100%;
   position: relative;
   overflow: hidden;
+  transition: width var(--transition-duration) ease;
 }
 
 .cyber-progress-bar::after {
@@ -318,7 +321,7 @@ body {
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(139, 92, 246, 0.3);
   color: #ffffff;
-  transition: all 0.3s ease;
+  transition: all var(--transition-duration) ease;
   min-height: 44px; /* Touch-friendly */
 }
 
@@ -379,11 +382,34 @@ body {
   border: 2px solid rgba(139, 92, 246, 0.3);
   border-radius: 50%;
   border-top-color: var(--neon-cyan);
-  animation: spin 1s ease-in-out infinite;
+  animation: spin var(--animation-duration) ease-in-out infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Performance settings - disable animations when requested */
+[data-animations="false"] * {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+}
+
+[data-animations="false"] .animated-border::before {
+  animation: none !important;
+}
+
+[data-animations="false"] .holographic {
+  animation: none !important;
+}
+
+[data-animations="false"] .glitch::before,
+[data-animations="false"] .glitch::after {
+  animation: none !important;
+}
+
+[data-animations="false"] .particle {
+  animation: none !important;
 }
 
 /* Mobile-specific styles */

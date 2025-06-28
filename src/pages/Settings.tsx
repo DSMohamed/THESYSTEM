@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   User, 
   Lock, 
@@ -24,13 +24,19 @@ import {
   Key,
   Mail,
   Camera,
-  Edit3
+  Edit3,
+  CheckCircle,
+  AlertCircle,
+  RefreshCw,
+  FileText
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 export const Settings: React.FC = () => {
   const { user } = useAuth();
+  const { settings, updateSetting, resetSettings, exportSettings, importSettings } = useSettings();
   
   // Profile settings
   const [name, setName] = useState(user?.name || '');
@@ -47,31 +53,9 @@ export const Settings: React.FC = () => {
   const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // App settings
-  const [settings, setSettings] = useState({
-    theme: localStorage.getItem('theme') || 'dark',
-    language: localStorage.getItem('language') || 'en',
-    notifications: {
-      taskReminders: JSON.parse(localStorage.getItem('notifications_taskReminders') || 'true'),
-      workoutReminders: JSON.parse(localStorage.getItem('notifications_workoutReminders') || 'true'),
-      achievements: JSON.parse(localStorage.getItem('notifications_achievements') || 'true'),
-      dailyStreak: JSON.parse(localStorage.getItem('notifications_dailyStreak') || 'true'),
-      weeklyReport: JSON.parse(localStorage.getItem('notifications_weeklyReport') || 'true'),
-      sound: JSON.parse(localStorage.getItem('notifications_sound') || 'true')
-    },
-    privacy: {
-      shareProgress: JSON.parse(localStorage.getItem('privacy_shareProgress') || 'true'),
-      publicProfile: JSON.parse(localStorage.getItem('privacy_publicProfile') || 'false'),
-      dataCollection: JSON.parse(localStorage.getItem('privacy_dataCollection') || 'true'),
-      analytics: JSON.parse(localStorage.getItem('privacy_analytics') || 'true')
-    },
-    performance: {
-      animations: JSON.parse(localStorage.getItem('performance_animations') || 'true'),
-      particles: JSON.parse(localStorage.getItem('performance_particles') || 'true'),
-      autoSave: JSON.parse(localStorage.getItem('performance_autoSave') || 'true'),
-      syncFrequency: localStorage.getItem('performance_syncFrequency') || 'realtime'
-    }
-  });
+  // Import/Export
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,8 +64,10 @@ export const Settings: React.FC = () => {
     try {
       await authService.updateProfile(name, avatar);
       setProfileMsg('Profile updated successfully!');
+      setTimeout(() => setProfileMsg(null), 3000);
     } catch (err: any) {
       setProfileMsg(err.message || 'Failed to update profile');
+      setTimeout(() => setProfileMsg(null), 5000);
     } finally {
       setProfileLoading(false);
     }
@@ -93,11 +79,13 @@ export const Settings: React.FC = () => {
     
     if (newPassword !== confirmPassword) {
       setPasswordMsg('New passwords do not match');
+      setTimeout(() => setPasswordMsg(null), 5000);
       return;
     }
     
     if (newPassword.length < 6) {
       setPasswordMsg('Password must be at least 6 characters');
+      setTimeout(() => setPasswordMsg(null), 5000);
       return;
     }
 
@@ -108,48 +96,23 @@ export const Settings: React.FC = () => {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      setTimeout(() => setPasswordMsg(null), 3000);
     } catch (err: any) {
       setPasswordMsg(err.message || 'Failed to change password');
+      setTimeout(() => setPasswordMsg(null), 5000);
     } finally {
       setPasswordLoading(false);
     }
   };
 
-  const updateSetting = (category: string, key: string, value: any) => {
-    const newSettings = {
-      ...settings,
-      [category]: {
-        ...settings[category as keyof typeof settings],
-        [key]: value
-      }
-    };
-    setSettings(newSettings);
-    
-    // Save to localStorage
-    if (category === 'notifications' || category === 'privacy' || category === 'performance') {
-      localStorage.setItem(`${category}_${key}`, JSON.stringify(value));
-    } else {
-      localStorage.setItem(key, value);
-    }
-
-    // Apply theme changes immediately
-    if (key === 'theme') {
-      if (value === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
-  };
-
-  const exportData = () => {
+  const handleExportData = () => {
     const data = {
       profile: { name: user?.name, email: user?.email },
       tasks: localStorage.getItem('dailyflow_tasks'),
       workouts: localStorage.getItem('dailyflow_workouts'),
       level: localStorage.getItem(`userLevel_${user?.id}`),
       achievements: localStorage.getItem(`achievements_${user?.id}`),
-      settings: settings,
+      settings: exportSettings(),
       exportDate: new Date().toISOString()
     };
     
@@ -164,47 +127,98 @@ export const Settings: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const clearAllData = () => {
-    if (window.confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
-      // Clear all app data
-      const keysToRemove = Object.keys(localStorage).filter(key => 
-        key.startsWith('dailyflow_') || 
-        key.startsWith('userLevel_') || 
-        key.startsWith('achievements_') ||
-        key.startsWith('notifications_') ||
-        key.startsWith('privacy_') ||
-        key.startsWith('performance_')
-      );
-      
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      
-      // Reset settings to defaults
-      setSettings({
-        theme: 'dark',
-        language: 'en',
-        notifications: {
-          taskReminders: true,
-          workoutReminders: true,
-          achievements: true,
-          dailyStreak: true,
-          weeklyReport: true,
-          sound: true
-        },
-        privacy: {
-          shareProgress: true,
-          publicProfile: false,
-          dataCollection: true,
-          analytics: true
-        },
-        performance: {
-          animations: true,
-          particles: true,
-          autoSave: true,
-          syncFrequency: 'realtime'
+  const handleExportSettings = () => {
+    const settingsData = exportSettings();
+    const blob = new Blob([settingsData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nexus-settings-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const success = importSettings(content);
+        
+        if (success) {
+          setImportMsg('Settings imported successfully!');
+          setTimeout(() => {
+            setImportMsg(null);
+            window.location.reload(); // Reload to apply all settings
+          }, 2000);
+        } else {
+          setImportMsg('Invalid settings file format');
+          setTimeout(() => setImportMsg(null), 5000);
         }
-      });
+      } catch (error) {
+        setImportMsg('Error reading settings file');
+        setTimeout(() => setImportMsg(null), 5000);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleClearAllData = () => {
+    if (window.confirm('⚠️ WARNING: This will permanently delete ALL your data including tasks, workouts, achievements, and settings. This action cannot be undone. Are you absolutely sure?')) {
+      if (window.confirm('This is your final warning. All data will be lost forever. Continue?')) {
+        // Clear all app data
+        const keysToRemove = Object.keys(localStorage).filter(key => 
+          key.startsWith('dailyflow_') || 
+          key.startsWith('userLevel_') || 
+          key.startsWith('achievements_') ||
+          key.startsWith('settings_') ||
+          key.startsWith('geminiChatHistory_')
+        );
+        
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        // Reset settings
+        resetSettings();
+        
+        alert('All data has been cleared. The page will now reload.');
+        window.location.reload();
+      }
+    }
+  };
+
+  const handleResetSettings = () => {
+    if (window.confirm('Reset all settings to default values? This will not affect your tasks or workouts.')) {
+      resetSettings();
+      alert('Settings have been reset to defaults. The page will reload to apply changes.');
+      setTimeout(() => window.location.reload(), 1000);
+    }
+  };
+
+  const testNotificationSound = () => {
+    // Play test sound
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
       
-      alert('All data has been cleared. Please refresh the page.');
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      console.error('Error playing test sound:', error);
     }
   };
 
@@ -306,15 +320,30 @@ export const Settings: React.FC = () => {
             <button
               type="submit"
               disabled={profileLoading}
-              className="w-full cyber-btn bg-gradient-to-r from-blue-500 to-cyan-600 text-white py-3 px-4 rounded-lg font-rajdhani font-medium hover:neon-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full cyber-btn bg-gradient-to-r from-blue-500 to-cyan-600 text-white py-3 px-4 rounded-lg font-rajdhani font-medium hover:neon-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
-              {profileLoading ? 'UPDATING...' : 'UPDATE PROFILE'}
+              {profileLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>UPDATING...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>UPDATE PROFILE</span>
+                </>
+              )}
             </button>
 
             {profileMsg && (
-              <div className={`p-3 cyber-card border rounded-lg ${
+              <div className={`p-3 cyber-card border rounded-lg flex items-center space-x-2 ${
                 profileMsg.includes('success') ? 'border-green-500/50' : 'border-red-500/50'
               }`}>
+                {profileMsg.includes('success') ? (
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-red-400" />
+                )}
                 <p className={`text-sm font-rajdhani ${
                   profileMsg.includes('success') ? 'text-green-400' : 'text-red-400'
                 }`}>
@@ -410,15 +439,30 @@ export const Settings: React.FC = () => {
             <button
               type="submit"
               disabled={passwordLoading}
-              className="w-full cyber-btn bg-gradient-to-r from-red-500 to-pink-600 text-white py-3 px-4 rounded-lg font-rajdhani font-medium hover:neon-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full cyber-btn bg-gradient-to-r from-red-500 to-pink-600 text-white py-3 px-4 rounded-lg font-rajdhani font-medium hover:neon-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
-              {passwordLoading ? 'UPDATING...' : 'UPDATE PASSWORD'}
+              {passwordLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>UPDATING...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>UPDATE PASSWORD</span>
+                </>
+              )}
             </button>
 
             {passwordMsg && (
-              <div className={`p-3 cyber-card border rounded-lg ${
+              <div className={`p-3 cyber-card border rounded-lg flex items-center space-x-2 ${
                 passwordMsg.includes('success') ? 'border-green-500/50' : 'border-red-500/50'
               }`}>
+                {passwordMsg.includes('success') ? (
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-red-400" />
+                )}
                 <p className={`text-sm font-rajdhani ${
                   passwordMsg.includes('success') ? 'text-green-400' : 'text-red-400'
                 }`}>
@@ -433,29 +477,43 @@ export const Settings: React.FC = () => {
         <div className="cyber-card rounded-xl p-4 lg:p-6 relative">
           <div className="absolute inset-0 animated-border rounded-xl"></div>
           
-          <div className="flex items-center space-x-3 mb-4 lg:mb-6 relative z-10">
-            <div className="w-8 lg:w-10 h-8 lg:h-10 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center neon-glow">
-              <Bell className="w-4 lg:w-5 h-4 lg:h-5 text-white" />
+          <div className="flex items-center justify-between mb-4 lg:mb-6 relative z-10">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 lg:w-10 h-8 lg:h-10 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center neon-glow">
+                <Bell className="w-4 lg:w-5 h-4 lg:h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-orbitron font-semibold text-cyan-400 neon-text">ALERT SYSTEM</h3>
+                <p className="text-xs text-purple-400 font-rajdhani" dir="rtl">نظام التنبيهات</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-orbitron font-semibold text-cyan-400 neon-text">ALERT SYSTEM</h3>
-              <p className="text-xs text-purple-400 font-rajdhani" dir="rtl">نظام التنبيهات</p>
-            </div>
+            {settings.notifications.sound && (
+              <button
+                onClick={testNotificationSound}
+                className="cyber-btn p-2 rounded-lg text-yellow-400 hover:text-orange-400 transition-colors"
+                title="Test notification sound"
+              >
+                <Volume2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           <div className="space-y-4 relative z-10">
             {[
-              { key: 'taskReminders', label: 'Task Reminders', labelAr: 'تذكير المهام' },
-              { key: 'workoutReminders', label: 'Workout Reminders', labelAr: 'تذكير التمارين' },
-              { key: 'achievements', label: 'Achievement Alerts', labelAr: 'تنبيهات الإنجازات' },
-              { key: 'dailyStreak', label: 'Daily Streak', labelAr: 'الإنجاز اليومي' },
-              { key: 'weeklyReport', label: 'Weekly Reports', labelAr: 'التقارير الأسبوعية' },
-              { key: 'sound', label: 'Sound Effects', labelAr: 'المؤثرات الصوتية' }
+              { key: 'taskReminders', label: 'Task Reminders', labelAr: 'تذكير المهام', icon: CheckCircle },
+              { key: 'workoutReminders', label: 'Workout Reminders', labelAr: 'تذكير التمارين', icon: Zap },
+              { key: 'achievements', label: 'Achievement Alerts', labelAr: 'تنبيهات الإنجازات', icon: Star },
+              { key: 'dailyStreak', label: 'Daily Streak', labelAr: 'الإنجاز اليومي', icon: TrendingUp },
+              { key: 'weeklyReport', label: 'Weekly Reports', labelAr: 'التقارير الأسبوعية', icon: FileText },
+              { key: 'sound', label: 'Sound Effects', labelAr: 'المؤثرات الصوتية', icon: settings.notifications.sound ? Volume2 : VolumeX }
             ].map((item) => (
-              <div key={item.key} className="flex items-center justify-between p-3 cyber-card rounded-lg border border-purple-500/30">
-                <div>
-                  <p className="text-sm font-rajdhani font-medium text-cyan-400">{item.label.toUpperCase()}</p>
-                  <p className="text-xs text-purple-400 font-rajdhani" dir="rtl">{item.labelAr}</p>
+              <div key={item.key} className="flex items-center justify-between p-3 cyber-card rounded-lg border border-purple-500/30 hover:border-cyan-500/50 transition-all duration-300">
+                <div className="flex items-center space-x-3">
+                  <item.icon className="w-4 h-4 text-cyan-400" />
+                  <div>
+                    <p className="text-sm font-rajdhani font-medium text-cyan-400">{item.label.toUpperCase()}</p>
+                    <p className="text-xs text-purple-400 font-rajdhani" dir="rtl">{item.labelAr}</p>
+                  </div>
                 </div>
                 <button
                   onClick={() => updateSetting('notifications', item.key, !settings.notifications[item.key as keyof typeof settings.notifications])}
@@ -492,15 +550,16 @@ export const Settings: React.FC = () => {
 
           <div className="space-y-4 relative z-10">
             {[
-              { key: 'shareProgress', label: 'Share Progress', labelAr: 'مشاركة التقدم' },
-              { key: 'publicProfile', label: 'Public Profile', labelAr: 'الملف العام' },
-              { key: 'dataCollection', label: 'Data Collection', labelAr: 'جمع البيانات' },
-              { key: 'analytics', label: 'Usage Analytics', labelAr: 'تحليلات الاستخدام' }
+              { key: 'shareProgress', label: 'Share Progress', labelAr: 'مشاركة التقدم', desc: 'Allow others to see your achievements' },
+              { key: 'publicProfile', label: 'Public Profile', labelAr: 'الملف العام', desc: 'Make your profile visible to other users' },
+              { key: 'dataCollection', label: 'Data Collection', labelAr: 'جمع البيانات', desc: 'Help improve the app with usage data' },
+              { key: 'analytics', label: 'Usage Analytics', labelAr: 'تحليلات الاستخدام', desc: 'Anonymous usage statistics' }
             ].map((item) => (
-              <div key={item.key} className="flex items-center justify-between p-3 cyber-card rounded-lg border border-purple-500/30">
+              <div key={item.key} className="flex items-center justify-between p-3 cyber-card rounded-lg border border-purple-500/30 hover:border-green-500/50 transition-all duration-300">
                 <div>
                   <p className="text-sm font-rajdhani font-medium text-cyan-400">{item.label.toUpperCase()}</p>
                   <p className="text-xs text-purple-400 font-rajdhani" dir="rtl">{item.labelAr}</p>
+                  <p className="text-xs text-gray-400 font-rajdhani mt-1">{item.desc}</p>
                 </div>
                 <button
                   onClick={() => updateSetting('privacy', item.key, !settings.privacy[item.key as keyof typeof settings.privacy])}
@@ -542,18 +601,18 @@ export const Settings: React.FC = () => {
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => updateSetting('', 'theme', 'dark')}
+                  onClick={() => updateSetting('theme', 'theme', 'dark')}
                   className={`cyber-btn flex items-center justify-center space-x-2 p-3 rounded-lg transition-all duration-300 ${
-                    settings.theme === 'dark' ? 'bg-gradient-to-r from-purple-500 to-pink-600 neon-glow' : 'border border-purple-500/50'
+                    settings.theme === 'dark' ? 'bg-gradient-to-r from-purple-500 to-pink-600 neon-glow' : 'border border-purple-500/50 hover:border-purple-400'
                   }`}
                 >
                   <Moon className="w-4 h-4" />
                   <span className="font-rajdhani font-medium">DARK</span>
                 </button>
                 <button
-                  onClick={() => updateSetting('', 'theme', 'light')}
+                  onClick={() => updateSetting('theme', 'theme', 'light')}
                   className={`cyber-btn flex items-center justify-center space-x-2 p-3 rounded-lg transition-all duration-300 ${
-                    settings.theme === 'light' ? 'bg-gradient-to-r from-yellow-500 to-orange-600 neon-glow' : 'border border-purple-500/50'
+                    settings.theme === 'light' ? 'bg-gradient-to-r from-yellow-500 to-orange-600 neon-glow' : 'border border-purple-500/50 hover:border-yellow-400'
                   }`}
                 >
                   <Sun className="w-4 h-4" />
@@ -568,18 +627,18 @@ export const Settings: React.FC = () => {
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => updateSetting('', 'language', 'en')}
+                  onClick={() => updateSetting('language', 'language', 'en')}
                   className={`cyber-btn flex items-center justify-center space-x-2 p-3 rounded-lg transition-all duration-300 ${
-                    settings.language === 'en' ? 'bg-gradient-to-r from-blue-500 to-cyan-600 neon-glow' : 'border border-purple-500/50'
+                    settings.language === 'en' ? 'bg-gradient-to-r from-blue-500 to-cyan-600 neon-glow' : 'border border-purple-500/50 hover:border-blue-400'
                   }`}
                 >
                   <Globe className="w-4 h-4" />
                   <span className="font-rajdhani font-medium">ENGLISH</span>
                 </button>
                 <button
-                  onClick={() => updateSetting('', 'language', 'ar')}
+                  onClick={() => updateSetting('language', 'language', 'ar')}
                   className={`cyber-btn flex items-center justify-center space-x-2 p-3 rounded-lg transition-all duration-300 ${
-                    settings.language === 'ar' ? 'bg-gradient-to-r from-green-500 to-emerald-600 neon-glow' : 'border border-purple-500/50'
+                    settings.language === 'ar' ? 'bg-gradient-to-r from-green-500 to-emerald-600 neon-glow' : 'border border-purple-500/50 hover:border-green-400'
                   }`}
                 >
                   <Globe className="w-4 h-4" />
@@ -606,14 +665,15 @@ export const Settings: React.FC = () => {
 
           <div className="space-y-4 relative z-10">
             {[
-              { key: 'animations', label: 'Animations', labelAr: 'الحركات' },
-              { key: 'particles', label: 'Particle Effects', labelAr: 'تأثيرات الجسيمات' },
-              { key: 'autoSave', label: 'Auto Save', labelAr: 'الحفظ التلقائي' }
+              { key: 'animations', label: 'Animations', labelAr: 'الحركات', desc: 'Enable visual animations and transitions' },
+              { key: 'particles', label: 'Particle Effects', labelAr: 'تأثيرات الجسيمات', desc: 'Show floating particle effects' },
+              { key: 'autoSave', label: 'Auto Save', labelAr: 'الحفظ التلقائي', desc: 'Automatically save changes' }
             ].map((item) => (
-              <div key={item.key} className="flex items-center justify-between p-3 cyber-card rounded-lg border border-purple-500/30">
+              <div key={item.key} className="flex items-center justify-between p-3 cyber-card rounded-lg border border-purple-500/30 hover:border-orange-500/50 transition-all duration-300">
                 <div>
                   <p className="text-sm font-rajdhani font-medium text-cyan-400">{item.label.toUpperCase()}</p>
                   <p className="text-xs text-purple-400 font-rajdhani" dir="rtl">{item.labelAr}</p>
+                  <p className="text-xs text-gray-400 font-rajdhani mt-1">{item.desc}</p>
                 </div>
                 <button
                   onClick={() => updateSetting('performance', item.key, !settings.performance[item.key as keyof typeof settings.performance])}
@@ -646,6 +706,7 @@ export const Settings: React.FC = () => {
                 <option value="15min">EVERY 15 MINUTES</option>
                 <option value="manual">MANUAL ONLY</option>
               </select>
+              <p className="text-xs text-gray-400 font-rajdhani mt-1">How often to sync data changes</p>
             </div>
           </div>
         </div>
@@ -665,29 +726,81 @@ export const Settings: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
           <button
-            onClick={exportData}
-            className="cyber-btn flex items-center justify-center space-x-2 p-4 rounded-lg border border-blue-500/50 hover:bg-blue-900/20 transition-all duration-300"
+            onClick={handleExportData}
+            className="cyber-btn flex flex-col items-center justify-center space-y-2 p-4 rounded-lg border border-blue-500/50 hover:bg-blue-900/20 hover:border-blue-400 transition-all duration-300"
           >
-            <Download className="w-5 h-5 text-blue-400" />
-            <span className="font-rajdhani font-medium text-blue-400">EXPORT DATA</span>
+            <Download className="w-6 h-6 text-blue-400" />
+            <span className="font-rajdhani font-medium text-blue-400 text-sm">EXPORT ALL DATA</span>
+            <span className="text-xs text-gray-400 font-rajdhani text-center">Complete backup</span>
           </button>
 
           <button
-            className="cyber-btn flex items-center justify-center space-x-2 p-4 rounded-lg border border-green-500/50 hover:bg-green-900/20 transition-all duration-300"
+            onClick={handleExportSettings}
+            className="cyber-btn flex flex-col items-center justify-center space-y-2 p-4 rounded-lg border border-cyan-500/50 hover:bg-cyan-900/20 hover:border-cyan-400 transition-all duration-300"
           >
-            <Upload className="w-5 h-5 text-green-400" />
-            <span className="font-rajdhani font-medium text-green-400">IMPORT DATA</span>
+            <FileText className="w-6 h-6 text-cyan-400" />
+            <span className="font-rajdhani font-medium text-cyan-400 text-sm">EXPORT SETTINGS</span>
+            <span className="text-xs text-gray-400 font-rajdhani text-center">Settings only</span>
           </button>
 
+          <div className="relative">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImportSettings}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="cyber-btn flex flex-col items-center justify-center space-y-2 p-4 rounded-lg border border-green-500/50 hover:bg-green-900/20 hover:border-green-400 transition-all duration-300 w-full"
+            >
+              <Upload className="w-6 h-6 text-green-400" />
+              <span className="font-rajdhani font-medium text-green-400 text-sm">IMPORT SETTINGS</span>
+              <span className="text-xs text-gray-400 font-rajdhani text-center">Restore settings</span>
+            </button>
+          </div>
+
           <button
-            onClick={clearAllData}
-            className="cyber-btn flex items-center justify-center space-x-2 p-4 rounded-lg border border-red-500/50 hover:bg-red-900/20 transition-all duration-300"
+            onClick={handleClearAllData}
+            className="cyber-btn flex flex-col items-center justify-center space-y-2 p-4 rounded-lg border border-red-500/50 hover:bg-red-900/20 hover:border-red-400 transition-all duration-300"
           >
-            <Trash2 className="w-5 h-5 text-red-400" />
-            <span className="font-rajdhani font-medium text-red-400">CLEAR DATA</span>
+            <Trash2 className="w-6 h-6 text-red-400" />
+            <span className="font-rajdhani font-medium text-red-400 text-sm">CLEAR ALL DATA</span>
+            <span className="text-xs text-gray-400 font-rajdhani text-center">⚠️ Permanent</span>
           </button>
+        </div>
+
+        {/* Additional Actions */}
+        <div className="mt-6 flex flex-col sm:flex-row gap-4 relative z-10">
+          <button
+            onClick={handleResetSettings}
+            className="cyber-btn flex items-center justify-center space-x-2 px-4 py-3 border border-yellow-500/50 hover:bg-yellow-900/20 hover:border-yellow-400 transition-all duration-300"
+          >
+            <RefreshCw className="w-4 h-4 text-yellow-400" />
+            <span className="font-rajdhani font-medium text-yellow-400">RESET SETTINGS</span>
+          </button>
+          
+          <div className="flex-1">
+            {importMsg && (
+              <div className={`p-3 cyber-card border rounded-lg flex items-center space-x-2 ${
+                importMsg.includes('success') ? 'border-green-500/50' : 'border-red-500/50'
+              }`}>
+                {importMsg.includes('success') ? (
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-red-400" />
+                )}
+                <p className={`text-sm font-rajdhani ${
+                  importMsg.includes('success') ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {importMsg}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-6 p-4 cyber-card rounded-lg bg-yellow-900/20 border border-yellow-500/30 relative z-10">
@@ -698,6 +811,7 @@ export const Settings: React.FC = () => {
               <p className="text-xs text-yellow-300 mt-1 font-rajdhani">
                 All data is stored locally on your device. Export your data regularly to prevent loss. 
                 Clearing data will permanently remove all tasks, workouts, achievements, and settings.
+                Settings are automatically saved when changed.
               </p>
               <p className="text-xs text-yellow-300 mt-1 font-rajdhani" dir="rtl">
                 جميع البيانات محفوظة محلياً على جهازك. قم بتصدير بياناتك بانتظام لمنع فقدانها.
