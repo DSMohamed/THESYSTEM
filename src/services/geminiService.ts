@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const API_KEY = 'AIzaSyDGpKOcoDGGJY8wYrMlnLZZKQBOqOJJBJo';
+const API_KEY = 'AIzaSyD0nM9xL3s7U4V0h_wR9HqjN4qafNFgRmk';
 
 interface UserContext {
   name?: string;
