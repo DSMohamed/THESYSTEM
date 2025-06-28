@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Clock, TrendingUp, Calendar, Play, Pause, RotateCcw } from 'lucide-react';
+import { Plus, Clock, TrendingUp, Calendar, Play, Pause, RotateCcw, Dumbbell, Zap, Activity, Target } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTask, WorkoutSession } from '../contexts/TaskContext';
 
@@ -54,100 +54,97 @@ export const Workouts: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Workouts</h1>
-          <p className="text-gray-600 mt-1">Track your fitness journey and progress</p>
-          <p className="text-sm text-gray-500 mt-1" dir="rtl">تتبع رحلة اللياقة والتقدم</p>
+      <div className="cyber-card rounded-xl lg:rounded-2xl p-4 lg:p-6 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-green-900/50 to-emerald-900/50"></div>
+        <div className="absolute inset-0 holographic opacity-20"></div>
+        
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between relative z-10">
+          <div className="mb-4 lg:mb-0">
+            <h1 className="text-2xl lg:text-4xl font-orbitron font-bold mb-2 lg:mb-4 glitch cyber-text-glow" data-text="FITNESS PROTOCOL SYSTEM">
+              FITNESS PROTOCOL SYSTEM
+            </h1>
+            <p className="text-cyan-400 text-base lg:text-lg font-rajdhani mb-1 lg:mb-2">
+              TRAINING CENTER • STATUS: OPERATIONAL
+            </p>
+            <p className="text-purple-400 font-rajdhani text-sm lg:text-base">
+              SESSIONS: {workoutStats.totalWorkouts} • TOTAL TIME: {workoutStats.totalTime}MIN
+            </p>
+            <div className="mt-3 lg:mt-6" dir="rtl">
+              <h2 className="text-lg lg:text-xl font-rajdhani font-semibold text-cyan-400">نظام بروتوكول اللياقة</h2>
+              <p className="text-purple-400 font-rajdhani text-sm lg:text-base">الجلسات: {workoutStats.totalWorkouts} • الوقت الإجمالي: {workoutStats.totalTime} دقيقة</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="hidden lg:block">
+              <div className="w-20 lg:w-24 h-20 lg:h-24 cyber-card rounded-full flex items-center justify-center neon-glow">
+                <Dumbbell className="w-10 lg:w-12 h-10 lg:h-12 text-cyan-400 animate-pulse" />
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="cyber-btn bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg hover:neon-glow transition-all duration-300 flex items-center space-x-2"
+            >
+              <Plus className="w-4 lg:w-5 h-4 lg:h-5" />
+              <span className="font-rajdhani font-medium">LOG WORKOUT</span>
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Log Workout</span>
-        </button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Workouts</p>
-              <p className="text-xs text-gray-400 mt-1" dir="rtl">إجمالي التمارين</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
+        {[
+          { name: 'Total Workouts', nameAr: 'إجمالي التمارين', value: workoutStats.totalWorkouts, icon: TrendingUp, color: 'from-blue-400 to-cyan-600' },
+          { name: 'Total Time', nameAr: 'إجمالي الوقت', value: `${workoutStats.totalTime}min`, icon: Clock, color: 'from-green-400 to-emerald-600' },
+          { name: 'Average Time', nameAr: 'متوسط الوقت', value: `${workoutStats.averageTime}min`, icon: Target, color: 'from-purple-500 to-pink-600' },
+          { name: 'This Week', nameAr: 'هذا الأسبوع', value: workoutStats.thisWeek, icon: Zap, color: 'from-orange-400 to-red-600' }
+        ].map((stat, index) => (
+          <div key={stat.name} className="cyber-card rounded-lg lg:rounded-xl p-3 lg:p-6 relative overflow-hidden group hover:neon-glow transition-all duration-300">
+            <div className="absolute inset-0 animated-border rounded-lg lg:rounded-xl"></div>
+            
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between relative z-10">
+              <div className="mb-2 lg:mb-0">
+                <p className="text-xs lg:text-sm font-rajdhani font-medium text-purple-400 uppercase tracking-wide">{stat.name}</p>
+                <p className="text-xs text-cyan-400 mt-1 font-rajdhani hidden lg:block" dir="rtl">{stat.nameAr}</p>
+              </div>
+              <div className={`w-8 lg:w-12 h-8 lg:h-12 bg-gradient-to-r ${stat.color} rounded-lg flex items-center justify-center relative mb-2 lg:mb-0 neon-glow`}>
+                <stat.icon className="w-4 lg:w-6 h-4 lg:h-6 text-white" />
+              </div>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{workoutStats.totalWorkouts}</p>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Time</p>
-              <p className="text-xs text-gray-400 mt-1" dir="rtl">إجمالي الوقت</p>
-            </div>
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-5 h-5 text-green-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{workoutStats.totalTime}min</p>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Average Time</p>
-              <p className="text-xs text-gray-400 mt-1" dir="rtl">متوسط الوقت</p>
-            </div>
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-purple-600" />
+            <div className="mt-2 lg:mt-4 relative z-10">
+              <p className="text-xl lg:text-3xl font-orbitron font-bold text-cyan-400 neon-text">{stat.value}</p>
             </div>
           </div>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{workoutStats.averageTime}min</p>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">This Week</p>
-              <p className="text-xs text-gray-400 mt-1" dir="rtl">هذا الأسبوع</p>
-            </div>
-            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-orange-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{workoutStats.thisWeek}</p>
-        </div>
+        ))}
       </div>
 
       {/* Active Workout Timer */}
       {currentWorkout && (
-        <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white">
-          <div className="flex items-center justify-between">
+        <div className="cyber-card rounded-xl p-4 lg:p-6 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-green-500/30 to-emerald-600/30"></div>
+          <div className="absolute inset-0 holographic opacity-30"></div>
+          
+          <div className="flex items-center justify-between relative z-10">
             <div>
-              <h3 className="text-lg font-semibold mb-1">Active Workout</h3>
-              <p className="text-green-100">{currentWorkout.name}</p>
+              <h3 className="text-lg lg:text-xl font-orbitron font-semibold mb-1 text-cyan-400 neon-text">ACTIVE PROTOCOL</h3>
+              <p className="text-green-300 font-rajdhani text-base lg:text-lg">{currentWorkout.name.toUpperCase()}</p>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold">{formatTime(timerSeconds)}</div>
+              <div className="text-3xl lg:text-4xl font-orbitron font-bold text-cyan-400 neon-text">{formatTime(timerSeconds)}</div>
               <div className="flex items-center space-x-2 mt-2">
                 <button
                   onClick={() => setIsTimerRunning(!isTimerRunning)}
-                  className="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors"
+                  className="cyber-btn p-3 bg-white/20 rounded-lg hover:bg-white/30 transition-all duration-300 neon-glow"
                 >
-                  {isTimerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  {isTimerRunning ? <Pause className="w-5 h-5 text-cyan-400" /> : <Play className="w-5 h-5 text-cyan-400" />}
                 </button>
                 <button
                   onClick={handleStopWorkout}
-                  className="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors"
+                  className="cyber-btn p-3 bg-white/20 rounded-lg hover:bg-white/30 transition-all duration-300 neon-glow"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCcw className="w-5 h-5 text-cyan-400" />
                 </button>
               </div>
             </div>
@@ -156,45 +153,65 @@ export const Workouts: React.FC = () => {
       )}
 
       {/* Workout History */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">Workout History</h3>
+      <div className="cyber-card rounded-xl p-4 lg:p-6 relative">
+        <div className="absolute inset-0 animated-border rounded-xl"></div>
         
-        <div className="space-y-4">
+        <h3 className="text-lg lg:text-xl font-orbitron font-semibold text-cyan-400 neon-text mb-4 lg:mb-6 relative z-10">TRAINING HISTORY</h3>
+        
+        <div className="space-y-4 relative z-10">
           {userWorkouts.map((workout) => (
-            <div key={workout.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
+            <div key={workout.id} className="cyber-card rounded-lg p-4 lg:p-6 relative hover:neon-glow transition-all duration-300">
+              <div className="absolute inset-0 animated-border rounded-lg"></div>
+              
+              <div className="flex items-center justify-between mb-4 relative z-10">
                 <div>
-                  <h4 className="font-medium text-gray-900">{workout.name}</h4>
-                  <p className="text-sm text-gray-500">
-                    {new Date(workout.date).toLocaleDateString()} • {workout.duration} minutes
+                  <h4 className="font-orbitron font-medium text-cyan-400 text-base lg:text-lg neon-text">{workout.name.toUpperCase()}</h4>
+                  <p className="text-sm text-purple-400 font-rajdhani">
+                    {new Date(workout.date).toLocaleDateString()} • {workout.duration} MINUTES
                   </p>
                 </div>
                 <button
                   onClick={() => handleStartWorkout(workout)}
-                  className="flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                  className="cyber-btn flex items-center space-x-2 px-4 py-2 bg-green-900/30 text-green-400 border border-green-500/50 rounded-lg hover:bg-green-900/50 transition-all duration-300"
                 >
                   <Play className="w-4 h-4" />
-                  <span>Start</span>
+                  <span className="font-rajdhani font-medium">START</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4 relative z-10">
                 {workout.exercises.map((exercise) => (
-                  <div key={exercise.id} className="bg-gray-50 rounded-lg p-3">
-                    <h5 className="font-medium text-gray-900 text-sm">{exercise.name}</h5>
-                    <div className="text-xs text-gray-600 mt-1 space-y-1">
-                      <div>Sets: {exercise.sets}</div>
-                      <div>Reps: {exercise.reps}</div>
-                      {exercise.weight && <div>Weight: {exercise.weight}kg</div>}
-                      {exercise.restTime && <div>Rest: {exercise.restTime}s</div>}
+                  <div key={exercise.id} className="cyber-card rounded-lg p-3 bg-purple-900/20 border border-purple-500/30">
+                    <h5 className="font-rajdhani font-medium text-cyan-400 text-sm mb-2">{exercise.name.toUpperCase()}</h5>
+                    <div className="text-xs text-purple-300 font-rajdhani space-y-1">
+                      <div className="flex justify-between">
+                        <span>SETS:</span>
+                        <span className="text-cyan-400">{exercise.sets}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>REPS:</span>
+                        <span className="text-cyan-400">{exercise.reps}</span>
+                      </div>
+                      {exercise.weight && (
+                        <div className="flex justify-between">
+                          <span>WEIGHT:</span>
+                          <span className="text-cyan-400">{exercise.weight}kg</span>
+                        </div>
+                      )}
+                      {exercise.restTime && (
+                        <div className="flex justify-between">
+                          <span>REST:</span>
+                          <span className="text-cyan-400">{exercise.restTime}s</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
 
               {workout.notes && (
-                <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800">{workout.notes}</p>
+                <div className="cyber-card rounded-lg p-3 bg-blue-900/20 border border-blue-500/30 relative z-10">
+                  <p className="text-sm text-blue-300 font-rajdhani">{workout.notes}</p>
                 </div>
               )}
             </div>
@@ -202,19 +219,21 @@ export const Workouts: React.FC = () => {
         </div>
 
         {userWorkouts.length === 0 && (
-          <div className="text-center py-12">
-            <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No workouts recorded yet</h3>
-            <p className="text-gray-600">Start logging your workouts to track your progress!</p>
+          <div className="text-center py-12 relative z-10">
+            <Activity className="w-12 h-12 text-cyan-400 mx-auto mb-4 animate-pulse" />
+            <h3 className="text-lg font-orbitron font-medium text-cyan-400 mb-2">NO TRAINING SESSIONS RECORDED</h3>
+            <p className="text-purple-400 font-rajdhani">Initialize your first workout protocol!</p>
           </div>
         )}
       </div>
 
       {/* Add Workout Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Log New Workout</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="cyber-card rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+            <div className="absolute inset-0 animated-border rounded-2xl"></div>
+            
+            <h2 className="text-xl font-orbitron font-semibold text-cyan-400 mb-6 relative z-10 neon-text">LOG NEW TRAINING SESSION</h2>
             
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -241,23 +260,23 @@ export const Workouts: React.FC = () => {
               addWorkout(newWorkout);
               setShowAddForm(false);
               e.currentTarget.reset();
-            }} className="space-y-4">
+            }} className="space-y-4 relative z-10">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Workout Name
+                <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
+                  Protocol Name
                 </label>
                 <input
                   name="name"
                   type="text"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  placeholder="e.g., Upper Body Strength"
+                  className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
+                  placeholder="e.g., UPPER BODY STRENGTH"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
                     Duration (minutes)
                   </label>
                   <input
@@ -265,83 +284,83 @@ export const Workouts: React.FC = () => {
                     type="number"
                     min="1"
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                     placeholder="30"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
                     Date
                   </label>
                   <input
                     name="date"
                     type="date"
                     defaultValue={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                   />
                 </div>
               </div>
 
               {/* Exercise Section */}
-              <div className="border-t pt-4">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Exercises</h3>
+              <div className="cyber-card rounded-lg p-4 border border-purple-500/30">
+                <h3 className="text-lg font-orbitron font-medium text-cyan-400 mb-4 neon-text">EXERCISE PROTOCOL</h3>
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
                       Exercise Name
                     </label>
                     <input
                       name="exercise1"
                       type="text"
                       required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      placeholder="e.g., Push-ups"
+                      className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
+                      placeholder="e.g., PUSH-UPS"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Sets</label>
+                      <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">Sets</label>
                       <input
                         name="sets1"
                         type="number"
                         min="1"
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                         placeholder="3"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Reps</label>
+                      <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">Reps</label>
                       <input
                         name="reps1"
                         type="number"
                         min="1"
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                         placeholder="10"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Weight (kg)</label>
+                      <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">Weight (kg)</label>
                       <input
                         name="weight1"
                         type="number"
                         min="0"
                         step="0.5"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                         placeholder="Optional"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Rest (sec)</label>
+                      <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">Rest (sec)</label>
                       <input
                         name="rest1"
                         type="number"
                         min="0"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                         placeholder="60"
                       />
                     </div>
@@ -350,14 +369,14 @@ export const Workouts: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notes
+                <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
+                  Session Notes
                 </label>
                 <textarea
                   name="notes"
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  placeholder="How did it feel? Any observations?"
+                  className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
+                  placeholder="Performance observations, modifications, etc."
                 />
               </div>
 
@@ -365,15 +384,15 @@ export const Workouts: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 cyber-btn px-4 py-3 text-purple-400 border border-purple-500/50 rounded-lg hover:bg-purple-900/20 transition-all font-rajdhani font-medium"
                 >
-                  Cancel
+                  CANCEL
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all"
+                  className="flex-1 cyber-btn bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-3 rounded-lg hover:neon-glow transition-all font-rajdhani font-medium"
                 >
-                  Log Workout
+                  LOG SESSION
                 </button>
               </div>
             </form>

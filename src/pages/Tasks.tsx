@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Filter, Search, CheckCircle2, Circle, Trash2, Edit3 } from 'lucide-react';
+import { Plus, Filter, Search, CheckCircle2, Circle, Trash2, Edit3, Zap, Target, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTask, Task } from '../contexts/TaskContext';
 
@@ -49,36 +49,91 @@ export const Tasks: React.FC = () => {
     updateTask(taskId, { completed });
   };
 
+  const completedTasks = userTasks.filter(task => task.completed).length;
+  const totalTasks = userTasks.length;
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
-          <p className="text-gray-600 mt-1">Manage your daily tasks and activities</p>
-          <p className="text-sm text-gray-500 mt-1" dir="rtl">إدارة مهامك وأنشطتك اليومية</p>
+      <div className="cyber-card rounded-xl lg:rounded-2xl p-4 lg:p-6 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-900/50 to-purple-900/50"></div>
+        <div className="absolute inset-0 holographic opacity-20"></div>
+        
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between relative z-10">
+          <div className="mb-4 lg:mb-0">
+            <h1 className="text-2xl lg:text-4xl font-orbitron font-bold mb-2 lg:mb-4 glitch cyber-text-glow" data-text="TASK MANAGEMENT SYSTEM">
+              TASK MANAGEMENT SYSTEM
+            </h1>
+            <p className="text-cyan-400 text-base lg:text-lg font-rajdhani mb-1 lg:mb-2">
+              OPERATIONS CENTER • STATUS: ACTIVE
+            </p>
+            <p className="text-purple-400 font-rajdhani text-sm lg:text-base">
+              COMPLETION RATE: {completionRate}% • PENDING: {totalTasks - completedTasks}
+            </p>
+            <div className="mt-3 lg:mt-6" dir="rtl">
+              <h2 className="text-lg lg:text-xl font-rajdhani font-semibold text-cyan-400">نظام إدارة المهام</h2>
+              <p className="text-purple-400 font-rajdhani text-sm lg:text-base">معدل الإنجاز: {completionRate}%</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="hidden lg:block">
+              <div className="w-20 lg:w-24 h-20 lg:h-24 cyber-card rounded-full flex items-center justify-center neon-glow">
+                <Target className="w-10 lg:w-12 h-10 lg:h-12 text-cyan-400 animate-pulse" />
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="cyber-btn bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg hover:neon-glow transition-all duration-300 flex items-center space-x-2"
+            >
+              <Plus className="w-4 lg:w-5 h-4 lg:h-5" />
+              <span className="font-rajdhani font-medium">ADD TASK</span>
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Task</span>
-        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
+        {[
+          { name: 'Total Tasks', nameAr: 'إجمالي المهام', value: totalTasks, icon: Target, color: 'from-cyan-400 to-blue-600' },
+          { name: 'Completed', nameAr: 'مكتملة', value: completedTasks, icon: CheckCircle2, color: 'from-green-400 to-emerald-600' },
+          { name: 'Pending', nameAr: 'معلقة', value: totalTasks - completedTasks, icon: Clock, color: 'from-yellow-400 to-orange-600' },
+          { name: 'Success Rate', nameAr: 'معدل النجاح', value: `${completionRate}%`, icon: Zap, color: 'from-purple-500 to-pink-600' }
+        ].map((stat, index) => (
+          <div key={stat.name} className="cyber-card rounded-lg lg:rounded-xl p-3 lg:p-6 relative overflow-hidden group hover:neon-glow transition-all duration-300">
+            <div className="absolute inset-0 animated-border rounded-lg lg:rounded-xl"></div>
+            
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between relative z-10">
+              <div className="mb-2 lg:mb-0">
+                <p className="text-xs lg:text-sm font-rajdhani font-medium text-purple-400 uppercase tracking-wide">{stat.name}</p>
+                <p className="text-xs text-cyan-400 mt-1 font-rajdhani hidden lg:block" dir="rtl">{stat.nameAr}</p>
+              </div>
+              <div className={`w-8 lg:w-12 h-8 lg:h-12 bg-gradient-to-r ${stat.color} rounded-lg flex items-center justify-center relative mb-2 lg:mb-0 neon-glow`}>
+                <stat.icon className="w-4 lg:w-6 h-4 lg:h-6 text-white" />
+              </div>
+            </div>
+            <div className="mt-2 lg:mt-4 relative z-10">
+              <p className="text-xl lg:text-3xl font-orbitron font-bold text-cyan-400 neon-text">{stat.value}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+      <div className="cyber-card rounded-xl p-4 lg:p-6 relative">
+        <div className="absolute inset-0 animated-border rounded-xl"></div>
+        
+        <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4 relative z-10">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-cyan-400" />
             <input
               type="text"
-              placeholder="Search tasks..."
+              placeholder="SEARCH OPERATIONS..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="cyber-input pl-10 pr-4 py-2 lg:py-3 w-full rounded-lg font-rajdhani placeholder:text-purple-400/50"
             />
           </div>
 
@@ -86,80 +141,82 @@ export const Tasks: React.FC = () => {
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as 'all' | 'pending' | 'completed')}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="cyber-input px-4 py-2 lg:py-3 rounded-lg font-rajdhani"
           >
-            <option value="all">All Tasks</option>
-            <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
+            <option value="all">ALL STATUS</option>
+            <option value="pending">PENDING</option>
+            <option value="completed">COMPLETED</option>
           </select>
 
           {/* Category Filter */}
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as 'all' | 'general' | 'workout' | 'personal')}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="cyber-input px-4 py-2 lg:py-3 rounded-lg font-rajdhani"
           >
-            <option value="all">All Categories</option>
-            <option value="general">General</option>
-            <option value="workout">Workout</option>
-            <option value="personal">Personal</option>
+            <option value="all">ALL CATEGORIES</option>
+            <option value="general">GENERAL</option>
+            <option value="workout">WORKOUT</option>
+            <option value="personal">PERSONAL</option>
           </select>
         </div>
       </div>
 
       {/* Tasks List */}
-      <div className="space-y-4">
+      <div className="space-y-3 lg:space-y-4">
         {filteredTasks.map((task) => (
-          <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-start space-x-4">
+          <div key={task.id} className="cyber-card rounded-xl p-4 lg:p-6 relative hover:neon-glow transition-all duration-300">
+            <div className="absolute inset-0 animated-border rounded-xl"></div>
+            
+            <div className="flex items-start space-x-4 relative z-10">
               <button
                 onClick={() => toggleTask(task.id, !task.completed)}
-                className="mt-1 flex-shrink-0"
+                className="mt-1 flex-shrink-0 cyber-btn p-2 rounded-lg transition-all duration-300"
               >
                 {task.completed ? (
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  <CheckCircle2 className="w-5 h-5 text-green-400 neon-text" />
                 ) : (
-                  <Circle className="w-5 h-5 text-gray-400 hover:text-blue-500 transition-colors" />
+                  <Circle className="w-5 h-5 text-cyan-400 hover:text-green-400 transition-colors" />
                 )}
               </button>
 
               <div className="flex-1">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className={`font-medium ${task.completed ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                      {task.title}
+                    <h3 className={`font-orbitron font-medium text-base lg:text-lg ${task.completed ? 'text-gray-500 line-through' : 'text-cyan-400 neon-text'}`}>
+                      {task.title.toUpperCase()}
                     </h3>
                     {task.description && (
-                      <p className={`text-sm mt-1 ${task.completed ? 'text-gray-400' : 'text-gray-600'}`}>
+                      <p className={`text-sm mt-1 font-rajdhani ${task.completed ? 'text-gray-400' : 'text-purple-300'}`}>
                         {task.description}
                       </p>
                     )}
-                    <div className="flex items-center space-x-4 mt-2">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        task.priority === 'high' ? 'bg-red-100 text-red-800' :
-                        task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
+                    <div className="flex items-center space-x-4 mt-3">
+                      <span className={`px-3 py-1 text-xs font-rajdhani font-medium rounded-full border ${
+                        task.priority === 'high' ? 'bg-red-900/30 text-red-400 border-red-500/50' :
+                        task.priority === 'medium' ? 'bg-yellow-900/30 text-yellow-400 border-yellow-500/50' :
+                        'bg-gray-900/30 text-gray-400 border-gray-500/50'
                       }`}>
-                        {task.priority}
+                        {task.priority.toUpperCase()}
                       </span>
-                      <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                        {task.category}
+                      <span className="px-3 py-1 text-xs font-rajdhani font-medium bg-blue-900/30 text-blue-400 border border-blue-500/50 rounded-full">
+                        {task.category.toUpperCase()}
                       </span>
                       {task.dueDate && (
-                        <span className="text-xs text-gray-500">
-                          Due: {new Date(task.dueDate).toLocaleDateString()}
+                        <span className="text-xs text-purple-400 font-rajdhani">
+                          DUE: {new Date(task.dueDate).toLocaleDateString()}
                         </span>
                       )}
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <button className="p-1 text-gray-400 hover:text-blue-500 transition-colors">
+                    <button className="cyber-btn p-2 rounded-lg text-cyan-400 hover:text-blue-400 transition-colors">
                       <Edit3 className="w-4 h-4" />
                     </button>
                     <button 
                       onClick={() => deleteTask(task.id)}
-                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                      className="cyber-btn p-2 rounded-lg text-cyan-400 hover:text-red-400 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -171,84 +228,86 @@ export const Tasks: React.FC = () => {
         ))}
 
         {filteredTasks.length === 0 && (
-          <div className="text-center py-12">
-            <CheckCircle2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
-            <p className="text-gray-600">Create your first task to get started!</p>
+          <div className="text-center py-12 cyber-card rounded-xl">
+            <Target className="w-12 h-12 text-cyan-400 mx-auto mb-4 animate-pulse" />
+            <h3 className="text-lg font-orbitron font-medium text-cyan-400 mb-2">NO OPERATIONS FOUND</h3>
+            <p className="text-purple-400 font-rajdhani">Initialize your first task to begin operations!</p>
           </div>
         )}
       </div>
 
       {/* Add Task Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Add New Task</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="cyber-card rounded-2xl p-6 w-full max-w-md relative">
+            <div className="absolute inset-0 animated-border rounded-2xl"></div>
             
-            <form onSubmit={handleAddTask} className="space-y-4">
+            <h2 className="text-xl font-orbitron font-semibold text-cyan-400 mb-6 relative z-10 neon-text">INITIALIZE NEW TASK</h2>
+            
+            <form onSubmit={handleAddTask} className="space-y-4 relative z-10">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Task Title
+                <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
+                  Task Identifier
                 </label>
                 <input
                   name="title"
                   type="text"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter task title"
+                  className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
+                  placeholder="Enter operation name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
                   Description
                 </label>
                 <textarea
                   name="description"
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Optional description"
+                  className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
+                  placeholder="Optional mission details"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Priority
+                  <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
+                    Priority Level
                   </label>
                   <select
                     name="priority"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                   >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
+                    <option value="low">LOW</option>
+                    <option value="medium">MEDIUM</option>
+                    <option value="high">HIGH</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
                     Category
                   </label>
                   <select
                     name="category"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                   >
-                    <option value="general">General</option>
-                    <option value="workout">Workout</option>
-                    <option value="personal">Personal</option>
+                    <option value="general">GENERAL</option>
+                    <option value="workout">WORKOUT</option>
+                    <option value="personal">PERSONAL</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Due Date
+                <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
+                  Target Date
                 </label>
                 <input
                   name="dueDate"
                   type="date"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                 />
               </div>
 
@@ -256,15 +315,15 @@ export const Tasks: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 cyber-btn px-4 py-3 text-purple-400 border border-purple-500/50 rounded-lg hover:bg-purple-900/20 transition-all font-rajdhani font-medium"
                 >
-                  Cancel
+                  CANCEL
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all"
+                  className="flex-1 cyber-btn bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-3 rounded-lg hover:neon-glow transition-all font-rajdhani font-medium"
                 >
-                  Add Task
+                  INITIALIZE
                 </button>
               </div>
             </form>
