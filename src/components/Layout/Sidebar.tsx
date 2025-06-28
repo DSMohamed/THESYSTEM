@@ -53,11 +53,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // SIMPLIFIED close button handler
-  const handleCloseClick = () => {
-    console.log('X button clicked - calling onClose');
+  // DIRECT close handler - no event object needed
+  const closeSidebar = () => {
+    console.log('DIRECT CLOSE CALLED');
     if (onClose) {
+      console.log('Calling onClose function');
       onClose();
+    } else {
+      console.log('onClose is not available');
     }
   };
 
@@ -78,15 +81,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
         
-        {/* SIMPLIFIED Mobile Close Button */}
-        <button
-          onClick={handleCloseClick}
-          className="lg:hidden cyber-btn p-2 rounded-lg hover:neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
-          aria-label="Close sidebar"
-          style={{ zIndex: 100 }}
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* FIXED Mobile Close Button */}
+        <div className="lg:hidden">
+          <button
+            type="button"
+            onClick={closeSidebar}
+            onMouseDown={closeSidebar}
+            onTouchStart={closeSidebar}
+            className="cyber-btn p-3 rounded-lg hover:neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-purple-900/30 border border-cyan-400/50"
+            aria-label="Close sidebar"
+            style={{ 
+              zIndex: 9999,
+              position: 'relative',
+              minWidth: '44px',
+              minHeight: '44px'
+            }}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* User Profile */}

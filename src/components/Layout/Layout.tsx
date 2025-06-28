@@ -47,19 +47,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
   }, [sidebarOpen]);
 
-  // Simple close function
+  // DIRECT close function - no parameters
   const closeSidebar = () => {
-    console.log('Closing sidebar from Layout');
+    console.log('Layout closeSidebar called - setting state to false');
     setSidebarOpen(false);
   };
 
-  // Simple toggle function
+  // DIRECT toggle function
   const toggleSidebar = () => {
-    console.log('Toggling sidebar, current state:', sidebarOpen);
+    console.log('Layout toggleSidebar called, current state:', sidebarOpen);
     setSidebarOpen(!sidebarOpen);
   };
 
-  // Handle overlay click - simplified
+  // DIRECT overlay click handler
   const handleOverlayClick = () => {
     console.log('Overlay clicked - closing sidebar');
     setSidebarOpen(false);
@@ -82,11 +82,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         ))}
       </div>
 
-      {/* Mobile Overlay - Simplified */}
+      {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black bg-opacity-75 z-40"
           onClick={handleOverlayClick}
+          onTouchStart={handleOverlayClick}
         />
       )}
 
@@ -106,8 +107,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <button
             type="button"
             onClick={toggleSidebar}
-            className="cyber-btn p-3 rounded-lg neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            onMouseDown={toggleSidebar}
+            className="cyber-btn p-3 rounded-lg neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-purple-900/50 border border-cyan-400/50"
             aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
+            style={{ 
+              zIndex: 9999,
+              position: 'relative',
+              minWidth: '44px',
+              minHeight: '44px'
+            }}
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
