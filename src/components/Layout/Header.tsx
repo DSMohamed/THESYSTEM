@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Search, ChevronDown, Moon, Sun, Wifi, Battery, Signal, Menu } from 'lucide-react';
+import { Bell, Search, ChevronDown, Moon, Sun, Wifi, Battery, Signal } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const Header: React.FC = () => {
@@ -27,9 +27,10 @@ export const Header: React.FC = () => {
       <div className="absolute inset-0 holographic opacity-10"></div>
       
       <div className="flex items-center justify-between relative z-10">
-        <div className="flex items-center space-x-3 lg:space-x-6 flex-1 min-w-0">
+        {/* Left side - Welcome text with mobile padding for menu button */}
+        <div className="flex items-center space-x-3 lg:space-x-6 flex-1 min-w-0 pl-12 lg:pl-0">
           <div className="min-w-0 flex-1">
-            <h2 className="text-base lg:text-xl font-orbitron font-bold cyber-text-glow truncate">
+            <h2 className="text-sm sm:text-base lg:text-xl font-orbitron font-bold cyber-text-glow truncate">
               WELCOME, {user?.name?.split(' ')[0]?.toUpperCase()}
             </h2>
             <p className="text-xs lg:text-sm text-purple-400 font-rajdhani hidden sm:block">
@@ -43,6 +44,7 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
+        {/* Right side - Controls */}
         <div className="flex items-center space-x-2 lg:space-x-4">
           {/* System Status Indicators - Hidden on mobile */}
           <div className="hidden xl:flex items-center space-x-3 px-4 py-2 cyber-card rounded-lg">
@@ -61,7 +63,7 @@ export const Header: React.FC = () => {
           </div>
 
           {/* Search - Hidden on small mobile */}
-          <div className="relative hidden sm:block">
+          <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-cyan-400" />
             <input
               type="text"
@@ -89,7 +91,7 @@ export const Header: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center space-x-2 lg:space-x-3 p-2 lg:p-3 text-sm cyber-card rounded-lg hover:neon-glow transition-all duration-300"
+              className="flex items-center space-x-1 lg:space-x-3 p-2 lg:p-3 text-sm cyber-card rounded-lg hover:neon-glow transition-all duration-300"
             >
               <div className="text-left hidden lg:block">
                 <p className="font-orbitron font-medium text-cyan-400 text-xs">{currentAccount.toUpperCase()}</p>

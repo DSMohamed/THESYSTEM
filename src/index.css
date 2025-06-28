@@ -426,6 +426,11 @@ body {
       animation: none;
     }
   }
+
+  /* Ensure mobile sidebar doesn't interfere with content */
+  .lg\:translate-x-0 {
+    transform: translateX(0);
+  }
 }
 
 /* Tablet styles */

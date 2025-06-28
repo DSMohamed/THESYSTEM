@@ -25,7 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const filteredNavigation = navigation.filter(item => item.name !== 'Users' || user?.role === 'admin');
 
   return (
-    <div className="flex flex-col h-full cyber-card border-r-2 neon-border-purple relative">
+    <div className="flex flex-col h-full cyber-card border-r-2 neon-border-purple relative bg-gray-900/95 backdrop-blur-md">
       {/* Animated border effect */}
       <div className="absolute inset-0 animated-border rounded-none"></div>
       

@@ -14,7 +14,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="flex h-screen cyber-bg relative overflow-hidden">
       {/* Floating particles */}
       <div className="particles">
-        {Array.from({ length: window.innerWidth < 768 ? 10 : 20 }).map((_, i) => (
+        {Array.from({ length: typeof window !== 'undefined' && window.innerWidth < 768 ? 10 : 20 }).map((_, i) => (
           <div
             key={i}
             className="particle"
@@ -27,33 +27,35 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         ))}
       </div>
 
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 cyber-btn p-3 rounded-lg"
-      >
-        {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-      </button>
-
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-75 z-40"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <div className={`
-        fixed lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out z-40
-        w-64 lg:w-64 flex-shrink-0 h-full
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        fixed lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out z-50
+        w-64 flex-shrink-0 h-full
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden relative z-10 w-full lg:w-auto">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
+        {/* Mobile Menu Button - Positioned over header */}
+        <div className="lg:hidden absolute top-4 left-4 z-50">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="cyber-btn p-3 rounded-lg neon-glow"
+          >
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+
         <Header />
         <main className="flex-1 overflow-y-auto cyber-grid">
           <div className="p-3 sm:p-4 lg:p-6">
