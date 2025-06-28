@@ -3,7 +3,7 @@ import { Bell, Search, ChevronDown, Moon, Sun, Wifi, Battery, Signal } from 'luc
 import { useAuth } from '../../contexts/AuthContext';
 
 export const Header: React.FC = () => {
-  const { user, users, switchUser, currentAccount } = useAuth();
+  const { user, users, switchUser } = useAuth();
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(() => {
     if (typeof window !== 'undefined') {
@@ -87,15 +87,15 @@ export const Header: React.FC = () => {
             {darkMode ? <Sun className="h-4 lg:h-5 w-4 lg:w-5" /> : <Moon className="h-4 lg:h-5 w-4 lg:w-5" />}
           </button>
 
-          {/* Account Switcher */}
+          {/* User Menu */}
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center space-x-1 lg:space-x-3 p-2 lg:p-3 text-sm cyber-card rounded-lg hover:neon-glow transition-all duration-300"
             >
               <div className="text-left hidden lg:block">
-                <p className="font-orbitron font-medium text-cyan-400 text-xs">{currentAccount.toUpperCase()}</p>
-                <p className="text-xs text-purple-400 font-rajdhani">{users.length} ACTIVE USERS</p>
+                <p className="font-orbitron font-medium text-cyan-400 text-xs">USER PROFILE</p>
+                <p className="text-xs text-purple-400 font-rajdhani">{users.length} AVAILABLE USERS</p>
               </div>
               <div className="w-6 lg:w-8 h-6 lg:h-8 rounded-full overflow-hidden border neon-border">
                 <img
@@ -110,8 +110,8 @@ export const Header: React.FC = () => {
             {showUserMenu && (
               <div className="absolute right-0 mt-2 w-64 lg:w-72 cyber-card rounded-lg neon-border z-50">
                 <div className="p-4 border-b border-purple-500/30">
-                  <p className="text-sm font-orbitron font-medium text-cyan-400">{currentAccount.toUpperCase()}</p>
-                  <p className="text-xs text-purple-400 font-rajdhani">USER MANAGEMENT SYSTEM</p>
+                  <p className="text-sm font-orbitron font-medium text-cyan-400">USER MANAGEMENT</p>
+                  <p className="text-xs text-purple-400 font-rajdhani">Switch between available users</p>
                 </div>
                 <div className="p-2 max-h-64 overflow-y-auto">
                   {users.map((u) => (

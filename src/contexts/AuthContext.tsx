@@ -11,7 +11,6 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   switchUser: (userId: string) => void;
-  currentAccount: string;
   error: string | null;
   clearError: () => void;
 }
@@ -41,7 +40,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentAccount] = useState('Family Account');
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -141,7 +139,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signInWithGoogle,
       signOut,
       switchUser,
-      currentAccount,
       error,
       clearError
     }}>
