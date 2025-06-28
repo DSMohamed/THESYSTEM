@@ -28,7 +28,9 @@ import {
   CheckCircle,
   AlertCircle,
   RefreshCw,
-  FileText
+  FileText,
+  Star,
+  TrendingUp
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
