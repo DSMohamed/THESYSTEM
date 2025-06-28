@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Search, ChevronDown, Moon, Sun, Wifi, Battery, Signal } from 'lucide-react';
+import { Bell, Search, ChevronDown, Moon, Sun, Wifi, Battery, Signal, Menu } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const Header: React.FC = () => {
@@ -23,29 +23,29 @@ export const Header: React.FC = () => {
   }, [darkMode]);
 
   return (
-    <header className="cyber-card border-b-2 neon-border-purple px-6 py-4 relative">
+    <header className="cyber-card border-b-2 neon-border-purple px-3 sm:px-4 lg:px-6 py-3 lg:py-4 relative">
       <div className="absolute inset-0 holographic opacity-10"></div>
       
       <div className="flex items-center justify-between relative z-10">
-        <div className="flex items-center space-x-6">
-          <div>
-            <h2 className="text-xl font-orbitron font-bold cyber-text-glow">
+        <div className="flex items-center space-x-3 lg:space-x-6 flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base lg:text-xl font-orbitron font-bold cyber-text-glow truncate">
               WELCOME, {user?.name?.split(' ')[0]?.toUpperCase()}
             </h2>
-            <p className="text-sm text-purple-400 font-rajdhani">
+            <p className="text-xs lg:text-sm text-purple-400 font-rajdhani hidden sm:block">
               SYSTEM STATUS: ONLINE • {new Date().toLocaleDateString()}
             </p>
           </div>
-          <div className="hidden md:block" dir="rtl">
+          <div className="hidden xl:block" dir="rtl">
             <p className="text-sm text-cyan-400 font-rajdhani neon-text">
               مرحباً، {user?.name?.split(' ')[0]}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          {/* System Status Indicators */}
-          <div className="hidden lg:flex items-center space-x-3 px-4 py-2 cyber-card rounded-lg">
+        <div className="flex items-center space-x-2 lg:space-x-4">
+          {/* System Status Indicators - Hidden on mobile */}
+          <div className="hidden xl:flex items-center space-x-3 px-4 py-2 cyber-card rounded-lg">
             <div className="flex items-center space-x-1">
               <Wifi className="w-4 h-4 text-cyan-400" />
               <span className="text-xs text-cyan-400 font-rajdhani">ONLINE</span>
@@ -60,51 +60,58 @@ export const Header: React.FC = () => {
             </div>
           </div>
 
-          {/* Search */}
-          <div className="relative hidden md:block">
+          {/* Search - Hidden on small mobile */}
+          <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-cyan-400" />
             <input
               type="text"
-              placeholder="SEARCH SYSTEM..."
-              className="cyber-input pl-10 pr-4 py-2 w-64 text-sm rounded-lg font-rajdhani placeholder:text-purple-400/50"
+              placeholder="SEARCH..."
+              className="cyber-input pl-10 pr-4 py-2 w-32 lg:w-64 text-sm rounded-lg font-rajdhani placeholder:text-purple-400/50"
             />
           </div>
 
           {/* Notifications */}
-          <button className="p-3 text-purple-400 hover:text-cyan-400 hover:bg-purple-900/20 rounded-lg transition-all duration-300 relative cyber-btn">
-            <Bell className="h-5 w-5" />
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+          <button className="p-2 lg:p-3 text-purple-400 hover:text-cyan-400 hover:bg-purple-900/20 rounded-lg transition-all duration-300 relative cyber-btn">
+            <Bell className="h-4 lg:h-5 w-4 lg:w-5" />
+            <div className="absolute -top-1 -right-1 w-2 lg:w-3 h-2 lg:h-3 bg-red-500 rounded-full animate-pulse"></div>
           </button>
 
-          {/* Dark Mode Toggle */}
+          {/* Dark Mode Toggle - Hidden on small mobile */}
           <button
-            className="p-3 text-purple-400 hover:text-cyan-400 hover:bg-purple-900/20 rounded-lg transition-all duration-300 cyber-btn"
+            className="hidden sm:block p-2 lg:p-3 text-purple-400 hover:text-cyan-400 hover:bg-purple-900/20 rounded-lg transition-all duration-300 cyber-btn"
             onClick={() => setDarkMode((prev) => !prev)}
             aria-label="Toggle dark mode"
           >
-            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {darkMode ? <Sun className="h-4 lg:h-5 w-4 lg:w-5" /> : <Moon className="h-4 lg:h-5 w-4 lg:w-5" />}
           </button>
 
           {/* Account Switcher */}
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center space-x-3 p-3 text-sm cyber-card rounded-lg hover:neon-glow transition-all duration-300"
+              className="flex items-center space-x-2 lg:space-x-3 p-2 lg:p-3 text-sm cyber-card rounded-lg hover:neon-glow transition-all duration-300"
             >
-              <div className="text-left">
+              <div className="text-left hidden lg:block">
                 <p className="font-orbitron font-medium text-cyan-400 text-xs">{currentAccount.toUpperCase()}</p>
                 <p className="text-xs text-purple-400 font-rajdhani">{users.length} ACTIVE USERS</p>
               </div>
-              <ChevronDown className="h-4 w-4 text-purple-400" />
+              <div className="w-6 lg:w-8 h-6 lg:h-8 rounded-full overflow-hidden border neon-border">
+                <img
+                  className="w-full h-full object-cover"
+                  src={user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150'}
+                  alt={user?.name}
+                />
+              </div>
+              <ChevronDown className="h-3 lg:h-4 w-3 lg:w-4 text-purple-400" />
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-72 cyber-card rounded-lg neon-border z-50">
+              <div className="absolute right-0 mt-2 w-64 lg:w-72 cyber-card rounded-lg neon-border z-50">
                 <div className="p-4 border-b border-purple-500/30">
                   <p className="text-sm font-orbitron font-medium text-cyan-400">{currentAccount.toUpperCase()}</p>
                   <p className="text-xs text-purple-400 font-rajdhani">USER MANAGEMENT SYSTEM</p>
                 </div>
-                <div className="p-2">
+                <div className="p-2 max-h-64 overflow-y-auto">
                   {users.map((u) => (
                     <button
                       key={u.id}
@@ -120,7 +127,7 @@ export const Header: React.FC = () => {
                     >
                       <div className="relative">
                         <img
-                          className="w-8 h-8 rounded-full object-cover border neon-border"
+                          className="w-6 lg:w-8 h-6 lg:h-8 rounded-full object-cover border neon-border"
                           src={u.avatar}
                           alt={u.name}
                         />
@@ -128,8 +135,8 @@ export const Header: React.FC = () => {
                           <div className="absolute -top-1 -right-1 status-indicator"></div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-rajdhani font-medium">{u.name.toUpperCase()}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-rajdhani font-medium truncate">{u.name.toUpperCase()}</p>
                         <p className="text-xs text-purple-400 font-rajdhani">{u.role.toUpperCase()}</p>
                       </div>
                       {user?.id === u.id && (
