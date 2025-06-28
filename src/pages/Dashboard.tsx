@@ -1,11 +1,13 @@
 import React from 'react';
-import { CheckCircle2, Clock, TrendingUp, Calendar, Dumbbell, BookOpen, Users, Zap, Activity, Target } from 'lucide-react';
+import { CheckCircle2, Clock, TrendingUp, Calendar, Dumbbell, BookOpen, Users, Zap, Activity, Target, Award, Star } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTask } from '../contexts/TaskContext';
+import { useLevel } from '../contexts/LevelContext';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { getUserTasks, getUserWorkouts } = useTask();
+  const { userLevel, achievements, getLevelProgress, getRecentActivity } = useLevel();
 
   const userTasks = getUserTasks(user?.id || '');
   const userWorkouts = getUserWorkouts(user?.id || '');
@@ -13,6 +15,9 @@ export const Dashboard: React.FC = () => {
   const completedTasks = userTasks.filter(task => task.completed).length;
   const totalTasks = userTasks.length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const levelProgress = getLevelProgress();
+  const recentActivity = getRecentActivity();
+  const unlockedAchievements = achievements.filter(a => a.unlocked);
 
   const stats = [
     {
@@ -48,8 +53,8 @@ export const Dashboard: React.FC = () => {
     {
       name: 'System Level',
       nameAr: 'مستوى النظام',
-      value: '42',
-      change: '+3 this week',
+      value: userLevel.level.toString(),
+      change: `${userLevel.currentXP}/${userLevel.currentXP + userLevel.xpToNextLevel} XP`,
       changeType: 'positive',
       icon: Zap,
       color: 'from-yellow-400 to-orange-600',
@@ -58,11 +63,10 @@ export const Dashboard: React.FC = () => {
   ];
 
   const recentTasks = userTasks.slice(0, 5);
-  const upcomingTasks = userTasks.filter(task => !task.completed && task.dueDate).slice(0, 3);
 
   return (
     <div className="space-y-4 lg:space-y-8">
-      {/* Welcome Section */}
+      {/* Welcome Section with Level Info */}
       <div className="cyber-card rounded-xl lg:rounded-2xl p-4 lg:p-8 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/50 to-cyan-900/50"></div>
         <div className="absolute inset-0 holographic opacity-20"></div>
@@ -73,19 +77,31 @@ export const Dashboard: React.FC = () => {
               NEXUS SYSTEM ONLINE
             </h1>
             <p className="text-cyan-400 text-base lg:text-lg font-rajdhani mb-1 lg:mb-2">
-              USER: {user?.name?.toUpperCase()} • STATUS: ACTIVE
+              USER: {user?.name?.toUpperCase()} • STATUS: ACTIVE • LEVEL: {userLevel.level}
             </p>
-            <p className="text-purple-400 font-rajdhani text-sm lg:text-base">
-              PENDING OPERATIONS: {userTasks.filter(t => !t.completed).length}
+            <p className="text-purple-400 font-rajdhani text-sm lg:text-base mb-2">
+              RANK: {userLevel.title.toUpperCase()} • XP: {userLevel.totalXP}
+            </p>
+            <div className="w-full lg:w-96 cyber-progress h-2 lg:h-3 rounded-full mb-2">
+              <div 
+                className="cyber-progress-bar h-full rounded-full bg-gradient-to-r from-cyan-400 to-purple-600"
+                style={{ width: `${levelProgress}%` }}
+              ></div>
+            </div>
+            <p className="text-xs lg:text-sm text-cyan-400 font-rajdhani">
+              {userLevel.xpToNextLevel} XP to next level
             </p>
             <div className="mt-3 lg:mt-6" dir="rtl">
               <h2 className="text-lg lg:text-xl font-rajdhani font-semibold text-cyan-400">مرحباً بعودتك، {user?.name?.split(' ')[0]}</h2>
-              <p className="text-purple-400 font-rajdhani text-sm lg:text-base">لديك {userTasks.filter(t => !t.completed).length} مهام معلقة اليوم</p>
+              <p className="text-purple-400 font-rajdhani text-sm lg:text-base">المستوى {userLevel.level} • {userLevel.titleAr}</p>
             </div>
           </div>
           <div className="hidden lg:block">
-            <div className="w-24 lg:w-32 h-24 lg:h-32 cyber-card rounded-full flex items-center justify-center neon-glow">
+            <div className="w-24 lg:w-32 h-24 lg:h-32 cyber-card rounded-full flex items-center justify-center neon-glow relative">
               <Activity className="w-12 lg:w-16 h-12 lg:h-16 text-cyan-400 animate-pulse" />
+              <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-600 rounded-full flex items-center justify-center text-xs font-orbitron font-bold text-white">
+                {userLevel.level}
+              </div>
             </div>
           </div>
         </div>
@@ -117,7 +133,7 @@ export const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
         {/* Recent Tasks */}
         <div className="cyber-card rounded-lg lg:rounded-xl p-4 lg:p-6 relative">
           <div className="absolute inset-0 animated-border rounded-lg lg:rounded-xl"></div>
@@ -146,34 +162,59 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* System Status */}
+        {/* Achievements */}
         <div className="cyber-card rounded-lg lg:rounded-xl p-4 lg:p-6 relative">
           <div className="absolute inset-0 animated-border rounded-lg lg:rounded-xl"></div>
           
           <div className="flex items-center justify-between mb-4 lg:mb-6 relative z-10">
-            <h3 className="text-base lg:text-lg font-orbitron font-semibold text-cyan-400 neon-text">SYSTEM STATUS</h3>
-            <span className="text-xs lg:text-sm text-purple-400 font-rajdhani" dir="rtl">حالة النظام</span>
+            <h3 className="text-base lg:text-lg font-orbitron font-semibold text-cyan-400 neon-text">ACHIEVEMENTS</h3>
+            <span className="text-xs lg:text-sm text-purple-400 font-rajdhani" dir="rtl">الإنجازات</span>
           </div>
           <div className="space-y-3 lg:space-y-4 relative z-10">
-            {[
-              { label: 'CPU USAGE', value: 45, color: 'bg-cyan-400' },
-              { label: 'MEMORY', value: 67, color: 'bg-purple-400' },
-              { label: 'NETWORK', value: 89, color: 'bg-green-400' },
-              { label: 'STORAGE', value: 23, color: 'bg-yellow-400' }
-            ].map((item, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-xs lg:text-sm font-rajdhani text-purple-400">{item.label}</span>
-                  <span className="text-xs lg:text-sm font-orbitron text-cyan-400">{item.value}%</span>
+            {unlockedAchievements.slice(0, 4).map((achievement) => (
+              <div key={achievement.id} className="flex items-center space-x-3 p-2 lg:p-3 rounded-lg bg-gradient-to-r from-yellow-900/20 to-orange-900/20 border border-yellow-500/30">
+                <div className="text-lg">{achievement.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs lg:text-sm font-rajdhani font-medium text-yellow-400 truncate">
+                    {achievement.name.toUpperCase()}
+                  </p>
+                  <p className="text-xs text-orange-400 font-rajdhani">+{achievement.xpReward} XP</p>
                 </div>
-                <div className="cyber-progress h-1 lg:h-2 rounded-full">
-                  <div 
-                    className={`cyber-progress-bar h-full rounded-full ${item.color}`}
-                    style={{ width: `${item.value}%` }}
-                  ></div>
-                </div>
+                <Award className="w-3 lg:w-4 h-3 lg:h-4 text-yellow-400" />
               </div>
             ))}
+            {unlockedAchievements.length === 0 && (
+              <div className="text-center py-4">
+                <Star className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-xs text-gray-400 font-rajdhani">Complete tasks to unlock achievements</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="cyber-card rounded-lg lg:rounded-xl p-4 lg:p-6 relative">
+          <div className="absolute inset-0 animated-border rounded-lg lg:rounded-xl"></div>
+          
+          <div className="flex items-center justify-between mb-4 lg:mb-6 relative z-10">
+            <h3 className="text-base lg:text-lg font-orbitron font-semibold text-cyan-400 neon-text">XP ACTIVITY</h3>
+            <span className="text-xs lg:text-sm text-purple-400 font-rajdhani" dir="rtl">نشاط النقاط</span>
+          </div>
+          <div className="space-y-2 lg:space-y-3 relative z-10">
+            {recentActivity.slice(0, 6).map((activity, index) => (
+              <div key={index} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-purple-900/20 transition-all duration-300">
+                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                <p className="text-xs font-rajdhani text-cyan-400 flex-1">
+                  {activity}
+                </p>
+              </div>
+            ))}
+            {recentActivity.length === 0 && (
+              <div className="text-center py-4">
+                <Zap className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-xs text-gray-400 font-rajdhani">Complete activities to earn XP</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -185,10 +226,10 @@ export const Dashboard: React.FC = () => {
         <h3 className="text-base lg:text-lg font-orbitron font-semibold text-cyan-400 neon-text mb-4 lg:mb-6 relative z-10">QUICK ACCESS</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 relative z-10">
           {[
-            { name: 'Add Task', nameAr: 'إضافة مهمة', icon: CheckCircle2, color: 'from-blue-500 to-cyan-500' },
-            { name: 'Log Workout', nameAr: 'تسجيل تمرين', icon: Dumbbell, color: 'from-green-500 to-emerald-500' },
-            { name: 'Write Journal', nameAr: 'كتابة مذكرة', icon: BookOpen, color: 'from-purple-500 to-pink-500' },
-            { name: 'AI Assistant', nameAr: 'المساعد الذكي', icon: Target, color: 'from-orange-500 to-red-500' }
+            { name: 'Add Task', nameAr: 'إضافة مهمة', icon: CheckCircle2, color: 'from-blue-500 to-cyan-500', xp: '+5 XP' },
+            { name: 'Log Workout', nameAr: 'تسجيل تمرين', icon: Dumbbell, color: 'from-green-500 to-emerald-500', xp: '+25 XP' },
+            { name: 'Write Journal', nameAr: 'كتابة مذكرة', icon: BookOpen, color: 'from-purple-500 to-pink-500', xp: '+20 XP' },
+            { name: 'AI Assistant', nameAr: 'المساعد الذكي', icon: Target, color: 'from-orange-500 to-red-500', xp: '+2 XP' }
           ].map((action) => (
             <button
               key={action.name}
@@ -199,6 +240,7 @@ export const Dashboard: React.FC = () => {
               </div>
               <span className="text-xs lg:text-sm font-rajdhani font-medium text-cyan-400 uppercase tracking-wide text-center">{action.name}</span>
               <span className="text-xs text-purple-400 mt-1 font-rajdhani hidden lg:block" dir="rtl">{action.nameAr}</span>
+              <span className="text-xs text-yellow-400 mt-1 font-rajdhani">{action.xp}</span>
             </button>
           ))}
         </div>

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { geminiService } from '../services/geminiService';
 import { useAuth } from '../contexts/AuthContext';
 import { useTask } from '../contexts/TaskContext';
+import { useLevel } from '../contexts/LevelContext';
 
 interface Message {
   id: string;
@@ -16,6 +17,7 @@ export const useGeminiChat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const { user } = useAuth();
   const { getUserTasks, getUserWorkouts, addTask, addWorkout } = useTask();
+  const { addXP } = useLevel();
 
   // Initialize with default messages
   const getDefaultMessages = (): Message[] => [
@@ -87,6 +89,9 @@ export const useGeminiChat = () => {
 
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
+
+    // Award XP for chat interaction
+    addXP(2, 'AI Chat Interaction');
 
     try {
       // Prepare user context
@@ -208,7 +213,7 @@ export const useGeminiChat = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, getUserTasks, getUserWorkouts, addTask, addWorkout, messages]);
+  }, [user, getUserTasks, getUserWorkouts, addTask, addWorkout, addXP, messages]);
 
   const generateTaskSuggestions = useCallback(async (language: 'en' | 'ar') => {
     const userTasks = getUserTasks(user?.id || '');

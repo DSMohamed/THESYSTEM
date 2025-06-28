@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TaskProvider } from './contexts/TaskContext';
+import { LevelProvider } from './contexts/LevelContext';
 import { Layout } from './components/Layout/Layout';
 import { AuthForm } from './components/Auth/AuthForm';
 import { LoadingSpinner } from './components/Auth/LoadingSpinner';
@@ -31,18 +32,20 @@ function AppContent() {
 
   return (
     <TaskProvider>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route path="/workouts" element={<Workouts />} />
-          <Route path="/journal" element={<Journal />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </Layout>
+      <LevelProvider>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/tasks" element={<Tasks />} />
+            <Route path="/workouts" element={<Workouts />} />
+            <Route path="/journal" element={<Journal />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </Layout>
+      </LevelProvider>
     </TaskProvider>
   );
 }

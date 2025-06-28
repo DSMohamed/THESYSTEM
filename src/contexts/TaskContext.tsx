@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useLevel } from './LevelContext';
 
 export interface Task {
   id: string;
@@ -156,12 +157,35 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: new Date().toISOString()
     };
     setTasks(prev => [...prev, newTask]);
+    
+    // Award XP for creating a task
+    try {
+      const { addXP } = require('./LevelContext').useLevel();
+      addXP(5, 'Task Created');
+    } catch (error) {
+      // Level context might not be available yet
+    }
   };
 
   const updateTask = (id: string, updates: Partial<Task>) => {
-    setTasks(prev => prev.map(task => 
-      task.id === id ? { ...task, ...updates } : task
-    ));
+    setTasks(prev => prev.map(task => {
+      if (task.id === id) {
+        const updatedTask = { ...task, ...updates };
+        
+        // Award XP for completing a task
+        if (!task.completed && updates.completed) {
+          try {
+            const { addXP } = require('./LevelContext').useLevel();
+            addXP(10, 'Task Completed');
+          } catch (error) {
+            // Level context might not be available yet
+          }
+        }
+        
+        return updatedTask;
+      }
+      return task;
+    }));
   };
 
   const deleteTask = (id: string) => {
@@ -174,6 +198,14 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: Date.now().toString()
     };
     setWorkouts(prev => [...prev, newWorkout]);
+    
+    // Award XP for logging a workout
+    try {
+      const { addXP } = require('./LevelContext').useLevel();
+      addXP(25, 'Workout Logged');
+    } catch (error) {
+      // Level context might not be available yet
+    }
   };
 
   const getUserTasks = (userId: string) => {
