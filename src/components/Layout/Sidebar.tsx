@@ -49,9 +49,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     }
   };
 
-  const handleCloseClick = (e: React.MouseEvent) => {
+  // Fixed close button handler with proper event handling
+  const handleCloseClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('Close button clicked'); // Debug log
     if (onClose) {
       onClose();
     }
@@ -74,14 +76,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           </div>
         </div>
         
-        {/* Mobile Close Button */}
+        {/* Mobile Close Button - Enhanced with better event handling */}
         {onClose && (
           <button
+            type="button"
             onClick={handleCloseClick}
-            className="lg:hidden cyber-btn p-2 rounded-lg hover:neon-glow transition-all duration-300"
+            className="lg:hidden cyber-btn p-2 rounded-lg hover:neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
             aria-label="Close sidebar"
+            style={{ zIndex: 60 }}
           >
-            <X className="w-5 h-5 text-cyan-400" />
+            <X className="w-5 h-5" />
           </button>
         )}
       </div>
