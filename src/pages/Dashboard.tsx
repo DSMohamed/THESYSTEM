@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle2, Clock, TrendingUp, Calendar, Dumbbell, BookOpen, Users, Zap, Activity, Target, Award, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTask } from '../contexts/TaskContext';
 import { useLevel } from '../contexts/LevelContext';
@@ -8,6 +9,7 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { getUserTasks, getUserWorkouts } = useTask();
   const { userLevel, achievements, getLevelProgress, getRecentActivity } = useLevel();
+  const navigate = useNavigate();
 
   const userTasks = getUserTasks(user?.id || '');
   const userWorkouts = getUserWorkouts(user?.id || '');
@@ -63,6 +65,26 @@ export const Dashboard: React.FC = () => {
   ];
 
   const recentTasks = userTasks.slice(0, 5);
+
+  // Quick action handlers
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'tasks':
+        navigate('/tasks');
+        break;
+      case 'workouts':
+        navigate('/workouts');
+        break;
+      case 'journal':
+        navigate('/journal');
+        break;
+      case 'chat':
+        navigate('/chat');
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
     <div className="space-y-4 lg:space-y-8">
@@ -226,14 +248,43 @@ export const Dashboard: React.FC = () => {
         <h3 className="text-base lg:text-lg font-orbitron font-semibold text-cyan-400 neon-text mb-4 lg:mb-6 relative z-10">QUICK ACCESS</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 relative z-10">
           {[
-            { name: 'Add Task', nameAr: 'إضافة مهمة', icon: CheckCircle2, color: 'from-blue-500 to-cyan-500', xp: '+5 XP' },
-            { name: 'Log Workout', nameAr: 'تسجيل تمرين', icon: Dumbbell, color: 'from-green-500 to-emerald-500', xp: '+25 XP' },
-            { name: 'Write Journal', nameAr: 'كتابة مذكرة', icon: BookOpen, color: 'from-purple-500 to-pink-500', xp: '+20 XP' },
-            { name: 'AI Assistant', nameAr: 'المساعد الذكي', icon: Target, color: 'from-orange-500 to-red-500', xp: '+2 XP' }
+            { 
+              name: 'Add Task', 
+              nameAr: 'إضافة مهمة', 
+              icon: CheckCircle2, 
+              color: 'from-blue-500 to-cyan-500', 
+              xp: '+5 XP',
+              action: 'tasks'
+            },
+            { 
+              name: 'Log Workout', 
+              nameAr: 'تسجيل تمرين', 
+              icon: Dumbbell, 
+              color: 'from-green-500 to-emerald-500', 
+              xp: '+25 XP',
+              action: 'workouts'
+            },
+            { 
+              name: 'Write Journal', 
+              nameAr: 'كتابة مذكرة', 
+              icon: BookOpen, 
+              color: 'from-purple-500 to-pink-500', 
+              xp: '+20 XP',
+              action: 'journal'
+            },
+            { 
+              name: 'AI Assistant', 
+              nameAr: 'المساعد الذكي', 
+              icon: Target, 
+              color: 'from-orange-500 to-red-500', 
+              xp: '+2 XP',
+              action: 'chat'
+            }
           ].map((action) => (
             <button
               key={action.name}
-              className="cyber-btn flex flex-col items-center p-3 lg:p-6 rounded-lg transition-all duration-300 hover:neon-glow group"
+              onClick={() => handleQuickAction(action.action)}
+              className="cyber-btn flex flex-col items-center p-3 lg:p-6 rounded-lg transition-all duration-300 hover:neon-glow group focus:outline-none focus:ring-2 focus:ring-cyan-400"
             >
               <div className={`w-8 lg:w-12 h-8 lg:h-12 bg-gradient-to-r ${action.color} rounded-lg flex items-center justify-center mb-2 lg:mb-3 group-hover:scale-110 transition-transform duration-300`}>
                 <action.icon className="w-4 lg:w-6 h-4 lg:h-6 text-white" />
