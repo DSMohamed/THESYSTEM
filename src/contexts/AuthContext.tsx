@@ -17,24 +17,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock additional users for demo
-const mockAdditionalUsers: User[] = [
-  {
-    id: '2',
-    name: 'Sarah Johnson',
-    email: 'sarah@example.com',
-    avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
-    role: 'member'
-  },
-  {
-    id: '3',
-    name: 'فاطمة علي',
-    email: 'fatima@example.com',
-    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150',
-    role: 'member'
-  }
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -48,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userData = await authService.getCurrentUserData();
         if (userData) {
           setUser(userData);
-          setUsers([userData, ...mockAdditionalUsers]);
+          setUsers([userData]);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -66,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       const userData = await authService.signUp(email, password, name);
       setUser(userData);
-      setUsers([userData, ...mockAdditionalUsers]);
+      setUsers([userData]);
     } catch (error: any) {
       setError(error.message);
       throw error;
@@ -81,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       const userData = await authService.signIn(email, password);
       setUser(userData);
-      setUsers([userData, ...mockAdditionalUsers]);
+      setUsers([userData]);
     } catch (error: any) {
       setError(error.message);
       throw error;
@@ -96,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       const userData = await authService.signInWithGoogle();
       setUser(userData);
-      setUsers([userData, ...mockAdditionalUsers]);
+      setUsers([userData]);
     } catch (error: any) {
       setError(error.message);
       throw error;
@@ -117,11 +99,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchUser = (userId: string) => {
-    const foundUser = users.find(u => u.id === userId);
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('currentUser', JSON.stringify(foundUser));
-    }
+    // Since we only have one user now, this function doesn't need to do anything
+    // but we keep it for compatibility
+    console.log('Switch user called for:', userId);
   };
 
   const clearError = () => {

@@ -3,7 +3,7 @@ import { Bell, Search, ChevronDown, Moon, Sun, Wifi, Battery, Signal } from 'luc
 import { useAuth } from '../../contexts/AuthContext';
 
 export const Header: React.FC = () => {
-  const { user, users, switchUser } = useAuth();
+  const { user, signOut } = useAuth();
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(() => {
     if (typeof window !== 'undefined') {
@@ -21,6 +21,15 @@ export const Header: React.FC = () => {
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setShowUserMenu(false);
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
 
   return (
     <header className="cyber-card border-b-2 neon-border-purple px-3 sm:px-4 lg:px-6 py-3 lg:py-4 relative">
@@ -95,7 +104,7 @@ export const Header: React.FC = () => {
             >
               <div className="text-left hidden lg:block">
                 <p className="font-orbitron font-medium text-cyan-400 text-xs">USER PROFILE</p>
-                <p className="text-xs text-purple-400 font-rajdhani">{users.length} AVAILABLE USERS</p>
+                <p className="text-xs text-purple-400 font-rajdhani">{user?.role?.toUpperCase()}</p>
               </div>
               <div className="w-6 lg:w-8 h-6 lg:h-8 rounded-full overflow-hidden border neon-border">
                 <img
@@ -110,42 +119,30 @@ export const Header: React.FC = () => {
             {showUserMenu && (
               <div className="absolute right-0 mt-2 w-64 lg:w-72 cyber-card rounded-lg neon-border z-50">
                 <div className="p-4 border-b border-purple-500/30">
-                  <p className="text-sm font-orbitron font-medium text-cyan-400">USER MANAGEMENT</p>
-                  <p className="text-xs text-purple-400 font-rajdhani">Switch between available users</p>
+                  <p className="text-sm font-orbitron font-medium text-cyan-400">USER PROFILE</p>
+                  <p className="text-xs text-purple-400 font-rajdhani">Account management</p>
                 </div>
-                <div className="p-2 max-h-64 overflow-y-auto">
-                  {users.map((u) => (
-                    <button
-                      key={u.id}
-                      onClick={() => {
-                        switchUser(u.id);
-                        setShowUserMenu(false);
-                      }}
-                      className={`w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-all duration-300 ${
-                        user?.id === u.id 
-                          ? 'cyber-card neon-border text-cyan-400' 
-                          : 'hover:bg-purple-900/20 text-gray-300 hover:text-cyan-400'
-                      }`}
-                    >
-                      <div className="relative">
-                        <img
-                          className="w-6 lg:w-8 h-6 lg:h-8 rounded-full object-cover border neon-border"
-                          src={u.avatar}
-                          alt={u.name}
-                        />
-                        {user?.id === u.id && (
-                          <div className="absolute -top-1 -right-1 status-indicator"></div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-rajdhani font-medium truncate">{u.name.toUpperCase()}</p>
-                        <p className="text-xs text-purple-400 font-rajdhani">{u.role.toUpperCase()}</p>
-                      </div>
-                      {user?.id === u.id && (
-                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                      )}
-                    </button>
-                  ))}
+                <div className="p-4">
+                  <div className="flex items-center space-x-3 p-3 rounded-lg cyber-card neon-border text-cyan-400">
+                    <div className="relative">
+                      <img
+                        className="w-8 h-8 rounded-full object-cover border neon-border"
+                        src={user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150'}
+                        alt={user?.name}
+                      />
+                      <div className="absolute -top-1 -right-1 status-indicator"></div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-rajdhani font-medium truncate">{user?.name?.toUpperCase()}</p>
+                      <p className="text-xs text-purple-400 font-rajdhani">{user?.role?.toUpperCase()}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full mt-3 cyber-btn px-4 py-2 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-900/20 transition-all font-rajdhani font-medium"
+                  >
+                    SIGN OUT
+                  </button>
                 </div>
               </div>
             )}

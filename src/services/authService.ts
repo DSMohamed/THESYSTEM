@@ -25,31 +25,6 @@ export interface User {
 }
 
 export class AuthService {
-  // Mock authentication for demo purposes
-  private mockUsers = [
-    {
-      id: '1',
-      name: 'Demo User',
-      email: 'demo@example.com',
-      avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
-      role: 'admin' as const
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      email: 'sarah@example.com',
-      avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
-      role: 'member' as const
-    },
-    {
-      id: '3',
-      name: 'أحمد محمد',
-      email: 'ahmed@example.com',
-      avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
-      role: 'member' as const
-    }
-  ];
-
   // Sign up with email and password (Firebase implementation)
   async signUp(email: string, password: string, name: string): Promise<User> {
     try {
@@ -188,7 +163,7 @@ export class AuthService {
 
   // Check if user is authenticated
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('currentUser');
+    return !!auth.currentUser;
   }
 
   // Update user profile (name, avatar)

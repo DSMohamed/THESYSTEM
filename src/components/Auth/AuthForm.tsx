@@ -39,12 +39,6 @@ export const AuthForm: React.FC = () => {
     }
   };
 
-  const demoUsers = [
-    { email: 'demo@example.com', name: 'Demo User (Try this!)' },
-    { email: 'sarah@example.com', name: 'Sarah Johnson (Demo)' },
-    { email: 'ahmed@example.com', name: 'أحمد محمد (Demo)' }
-  ];
-
   return (
     <div className="min-h-screen cyber-bg flex items-center justify-center px-4 relative overflow-hidden">
       {/* Floating particles */}
@@ -233,35 +227,6 @@ export const AuthForm: React.FC = () => {
               }
             </button>
           </div>
-
-          {/* Demo Users (only for sign in) */}
-          {!isSignUp && (
-            <div className="mt-8 pt-6 border-t border-purple-500/30 relative z-10">
-              <p className={`text-sm text-purple-400 mb-4 font-rajdhani ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'المستخدمون التجريبيون:' : 'DEMO ACCESS CODES:'}
-              </p>
-              <div className="space-y-2">
-                {demoUsers.map((user, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setEmail(user.email);
-                      setPassword('demo123');
-                      clearError();
-                    }}
-                    className={`w-full text-left px-3 py-2 text-sm text-gray-300 hover:text-cyan-400 hover:bg-purple-900/20 rounded-lg transition-all duration-300 font-rajdhani ${
-                      language === 'ar' ? 'text-right' : ''
-                    }`}
-                  >
-                    {user.name} - {user.email}
-                  </button>
-                ))}
-              </div>
-              <p className={`text-xs text-purple-400 mt-2 font-rajdhani ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'كلمة المرور: demo123' : 'ACCESS CODE: demo123'}
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
