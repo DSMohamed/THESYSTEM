@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Calendar, Lock, Search, Edit3, Trash2, Save } from 'lucide-react';
+import { Plus, Calendar, Lock, Search, Edit3, Trash2, Save, BookOpen, Zap, Target, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface JournalEntry {
@@ -84,11 +84,11 @@ export const Journal: React.FC = () => {
   };
 
   const moodColors = {
-    great: 'bg-green-100 text-green-800',
-    good: 'bg-blue-100 text-blue-800',
-    okay: 'bg-yellow-100 text-yellow-800',
-    bad: 'bg-orange-100 text-orange-800',
-    terrible: 'bg-red-100 text-red-800'
+    great: 'bg-green-900/30 text-green-400 border-green-500/50',
+    good: 'bg-blue-900/30 text-blue-400 border-blue-500/50',
+    okay: 'bg-yellow-900/30 text-yellow-400 border-yellow-500/50',
+    bad: 'bg-orange-900/30 text-orange-400 border-orange-500/50',
+    terrible: 'bg-red-900/30 text-red-400 border-red-500/50'
   };
 
   const handleAddEntry = (e: React.FormEvent<HTMLFormElement>) => {
@@ -123,47 +123,86 @@ export const Journal: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Journal</h1>
-          <p className="text-gray-600 mt-1">Your private space for thoughts and reflections</p>
-          <p className="text-sm text-gray-500 mt-1" dir="rtl">مساحتك الخاصة للأفكار والتأملات</p>
+      <div className="cyber-card rounded-xl lg:rounded-2xl p-4 lg:p-6 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-900/50 to-pink-900/50"></div>
+        <div className="absolute inset-0 holographic opacity-20"></div>
+        
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between relative z-10">
+          <div className="mb-4 lg:mb-0">
+            <h1 className="text-2xl lg:text-4xl font-orbitron font-bold mb-2 lg:mb-4 glitch cyber-text-glow" data-text="NEURAL JOURNAL SYSTEM">
+              NEURAL JOURNAL SYSTEM
+            </h1>
+            <p className="text-cyan-400 text-base lg:text-lg font-rajdhani mb-1 lg:mb-2">
+              MEMORY CORE • STATUS: ACTIVE
+            </p>
+            <p className="text-purple-400 font-rajdhani text-sm lg:text-base">
+              ENTRIES: {entryCount} • STREAK: {streak} DAYS
+            </p>
+            <div className="mt-3 lg:mt-6" dir="rtl">
+              <h2 className="text-lg lg:text-xl font-rajdhani font-semibold text-cyan-400">نظام المذكرات العصبية</h2>
+              <p className="text-purple-400 font-rajdhani text-sm lg:text-base">المذكرات: {entryCount} • الإنجاز المتتالي: {streak} أيام</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="hidden lg:block">
+              <div className="w-20 lg:w-24 h-20 lg:h-24 cyber-card rounded-full flex items-center justify-center neon-glow">
+                <BookOpen className="w-10 lg:w-12 h-10 lg:h-12 text-cyan-400 animate-pulse" />
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="cyber-btn bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg hover:neon-glow transition-all duration-300 flex items-center space-x-2"
+            >
+              <Plus className="w-4 lg:w-5 h-4 lg:h-5" />
+              <span className="font-rajdhani font-medium">NEW ENTRY</span>
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Entry</span>
-        </button>
       </div>
 
-      {/* Journal Summary */}
-      <div className="flex flex-col md:flex-row md:items-center md:space-x-8 mb-4">
-        <div className="flex items-center space-x-2 text-lg font-semibold text-purple-700">
-          <span>Journal Entries:</span>
-          <span className="text-purple-900">{entryCount}</span>
-        </div>
-        <div className="flex items-center space-x-2 text-lg font-semibold text-pink-700 mt-2 md:mt-0">
-          <span>Active Streak:</span>
-          <span className="text-pink-900">{streak} day{streak !== 1 ? 's' : ''}</span>
-        </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
+        {[
+          { name: 'Total Entries', nameAr: 'إجمالي المذكرات', value: entryCount, icon: BookOpen, color: 'from-purple-400 to-pink-600' },
+          { name: 'Writing Streak', nameAr: 'إنجاز الكتابة', value: `${streak} days`, icon: Zap, color: 'from-cyan-400 to-blue-600' },
+          { name: 'Private Entries', nameAr: 'المذكرات الخاصة', value: userEntries.filter(e => e.isPrivate).length, icon: Lock, color: 'from-orange-400 to-red-600' },
+          { name: 'This Month', nameAr: 'هذا الشهر', value: userEntries.filter(e => new Date(e.date).getMonth() === new Date().getMonth()).length, icon: Calendar, color: 'from-green-400 to-emerald-600' }
+        ].map((stat, index) => (
+          <div key={stat.name} className="cyber-card rounded-lg lg:rounded-xl p-3 lg:p-6 relative overflow-hidden group hover:neon-glow transition-all duration-300">
+            <div className="absolute inset-0 animated-border rounded-lg lg:rounded-xl"></div>
+            
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between relative z-10">
+              <div className="mb-2 lg:mb-0">
+                <p className="text-xs lg:text-sm font-rajdhani font-medium text-purple-400 uppercase tracking-wide">{stat.name}</p>
+                <p className="text-xs text-cyan-400 mt-1 font-rajdhani hidden lg:block" dir="rtl">{stat.nameAr}</p>
+              </div>
+              <div className={`w-8 lg:w-12 h-8 lg:h-12 bg-gradient-to-r ${stat.color} rounded-lg flex items-center justify-center relative mb-2 lg:mb-0 neon-glow`}>
+                <stat.icon className="w-4 lg:w-6 h-4 lg:h-6 text-white" />
+              </div>
+            </div>
+            <div className="mt-2 lg:mt-4 relative z-10">
+              <p className="text-xl lg:text-3xl font-orbitron font-bold text-cyan-400 neon-text">{stat.value}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+      <div className="cyber-card rounded-xl p-4 lg:p-6 relative">
+        <div className="absolute inset-0 animated-border rounded-xl"></div>
+        
+        <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4 relative z-10">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-cyan-400" />
             <input
               type="text"
-              placeholder="Search entries..."
+              placeholder="SEARCH MEMORIES..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="cyber-input pl-10 pr-4 py-2 lg:py-3 w-full rounded-lg font-rajdhani placeholder:text-purple-400/50"
             />
           </div>
 
@@ -171,22 +210,24 @@ export const Journal: React.FC = () => {
           <select
             value={selectedMood}
             onChange={(e) => setSelectedMood(e.target.value as 'all' | JournalEntry['mood'])}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            className="cyber-input px-4 py-2 lg:py-3 rounded-lg font-rajdhani"
           >
-            <option value="all">All Moods</option>
-            <option value="great">😄 Great</option>
-            <option value="good">😊 Good</option>
-            <option value="okay">😐 Okay</option>
-            <option value="bad">😞 Bad</option>
-            <option value="terrible">😢 Terrible</option>
+            <option value="all">ALL MOODS</option>
+            <option value="great">😄 GREAT</option>
+            <option value="good">😊 GOOD</option>
+            <option value="okay">😐 OKAY</option>
+            <option value="bad">😞 BAD</option>
+            <option value="terrible">😢 TERRIBLE</option>
           </select>
         </div>
       </div>
 
       {/* Entries List */}
-      <div className="space-y-4">
+      <div className="space-y-3 lg:space-y-4">
         {filteredEntries.map((entry) => (
-          <div key={entry.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div key={entry.id} className="cyber-card rounded-xl p-4 lg:p-6 relative hover:neon-glow transition-all duration-300">
+            <div className="absolute inset-0 animated-border rounded-xl"></div>
+            
             {editingEntry === entry.id ? (
               <EditEntryForm
                 entry={entry}
@@ -194,54 +235,56 @@ export const Journal: React.FC = () => {
                 onCancel={() => setEditingEntry(null)}
               />
             ) : (
-              <div>
+              <div className="relative z-10">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{entry.title}</h3>
+                      <h3 className="text-lg font-orbitron font-semibold text-cyan-400 neon-text">{entry.title.toUpperCase()}</h3>
                       {entry.isPrivate && (
-                        <div className="flex items-center space-x-1 text-gray-500">
+                        <div className="flex items-center space-x-1 text-orange-400">
                           <Lock className="w-4 h-4" />
-                          <span className="text-sm">Private</span>
+                          <span className="text-sm font-rajdhani">CLASSIFIED</span>
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
+                    <div className="flex items-center space-x-4 text-sm text-purple-400 mb-3 font-rajdhani">
                       <div className="flex items-center space-x-1">
                         <Calendar className="w-4 h-4" />
                         <span>{new Date(entry.date).toLocaleDateString()}</span>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${moodColors[entry.mood]}`}>
-                        {moodEmojis[entry.mood]} {entry.mood}
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${moodColors[entry.mood]}`}>
+                        {moodEmojis[entry.mood]} {entry.mood.toUpperCase()}
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => setEditingEntry(entry.id)}
-                      className="p-2 text-gray-400 hover:text-blue-500 transition-colors"
+                      className="cyber-btn p-2 rounded-lg text-cyan-400 hover:text-blue-400 transition-colors"
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteEntry(entry.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                      className="cyber-btn p-2 rounded-lg text-cyan-400 hover:text-red-400 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                <p className="text-gray-700 mb-4 leading-relaxed">{entry.content}</p>
+                <div className="cyber-card rounded-lg p-4 bg-purple-900/20 border border-purple-500/30 mb-4">
+                  <p className="text-purple-100 font-rajdhani leading-relaxed">{entry.content}</p>
+                </div>
 
                 {entry.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {entry.tags.map((tag, index) => (
                       <span
                         key={index}
-                        className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium"
+                        className="px-3 py-1 bg-cyan-900/30 text-cyan-400 border border-cyan-500/50 rounded-full text-xs font-rajdhani font-medium"
                       >
-                        #{tag}
+                        #{tag.toUpperCase()}
                       </span>
                     ))}
                   </div>
@@ -252,85 +295,87 @@ export const Journal: React.FC = () => {
         ))}
 
         {filteredEntries.length === 0 && (
-          <div className="text-center py-12">
-            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No journal entries found</h3>
-            <p className="text-gray-600">Start writing your first journal entry!</p>
+          <div className="text-center py-12 cyber-card rounded-xl">
+            <BookOpen className="w-12 h-12 text-cyan-400 mx-auto mb-4 animate-pulse" />
+            <h3 className="text-lg font-orbitron font-medium text-cyan-400 mb-2">NO MEMORY ENTRIES FOUND</h3>
+            <p className="text-purple-400 font-rajdhani">Initialize your first neural log!</p>
           </div>
         )}
       </div>
 
       {/* Add Entry Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">New Journal Entry</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="cyber-card rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+            <div className="absolute inset-0 animated-border rounded-2xl"></div>
+            
+            <h2 className="text-xl font-orbitron font-semibold text-cyan-400 mb-6 relative z-10 neon-text">NEW NEURAL ENTRY</h2>
 
-            <form onSubmit={handleAddEntry} className="space-y-4">
+            <form onSubmit={handleAddEntry} className="space-y-4 relative z-10">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
                   Entry Title
                 </label>
                 <input
                   name="title"
                   type="text"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="What's on your mind?"
+                  className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
+                  placeholder="What's on your neural network?"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
                   Content
                 </label>
                 <textarea
                   name="content"
                   rows={8}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                   placeholder="Write your thoughts..."
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
                     Date
                   </label>
                   <input
                     name="date"
                     type="date"
                     defaultValue={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mood
+                  <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
+                    Mood State
                   </label>
                   <select
                     name="mood"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                   >
-                    <option value="great">😄 Great</option>
-                    <option value="good">😊 Good</option>
-                    <option value="okay">😐 Okay</option>
-                    <option value="bad">😞 Bad</option>
-                    <option value="terrible">😢 Terrible</option>
+                    <option value="great">😄 GREAT</option>
+                    <option value="good">😊 GOOD</option>
+                    <option value="okay">😐 OKAY</option>
+                    <option value="bad">😞 BAD</option>
+                    <option value="terrible">😢 TERRIBLE</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
                   Tags (comma separated)
                 </label>
                 <input
                   name="tags"
                   type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
                   placeholder="workout, personal, reflection"
                 />
               </div>
@@ -342,8 +387,8 @@ export const Journal: React.FC = () => {
                   id="isPrivate"
                   className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                 />
-                <label htmlFor="isPrivate" className="ml-2 block text-sm text-gray-900">
-                  Mark as private entry
+                <label htmlFor="isPrivate" className="ml-2 block text-sm text-purple-400 font-rajdhani">
+                  MARK AS CLASSIFIED ENTRY
                 </label>
               </div>
 
@@ -351,15 +396,15 @@ export const Journal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 cyber-btn px-4 py-3 text-purple-400 border border-purple-500/50 rounded-lg hover:bg-purple-900/20 transition-all font-rajdhani font-medium"
                 >
-                  Cancel
+                  CANCEL
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all"
+                  className="flex-1 cyber-btn bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4 py-3 rounded-lg hover:neon-glow transition-all font-rajdhani font-medium"
                 >
-                  Save Entry
+                  SAVE ENTRY
                 </button>
               </div>
             </form>
@@ -393,32 +438,32 @@ const EditEntryForm: React.FC<{
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative z-10">
       <input
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-semibold"
+        className="cyber-input w-full px-4 py-3 rounded-lg font-orbitron font-semibold text-cyan-400"
       />
 
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={6}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+        className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
       />
 
       <div className="flex items-center space-x-4">
         <select
           value={mood}
           onChange={(e) => setMood(e.target.value as JournalEntry['mood'])}
-          className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+          className="cyber-input px-3 py-2 rounded-lg font-rajdhani"
         >
-          <option value="great">😄 Great</option>
-          <option value="good">😊 Good</option>
-          <option value="okay">😐 Okay</option>
-          <option value="bad">😞 Bad</option>
-          <option value="terrible">😢 Terrible</option>
+          <option value="great">😄 GREAT</option>
+          <option value="good">😊 GOOD</option>
+          <option value="okay">😐 OKAY</option>
+          <option value="bad">😞 BAD</option>
+          <option value="terrible">😢 TERRIBLE</option>
         </select>
 
         <label className="flex items-center">
@@ -428,7 +473,7 @@ const EditEntryForm: React.FC<{
             onChange={(e) => setIsPrivate(e.target.checked)}
             className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
           />
-          <span className="ml-2 text-sm text-gray-700">Private</span>
+          <span className="ml-2 text-sm text-purple-400 font-rajdhani">CLASSIFIED</span>
         </label>
       </div>
 
@@ -437,22 +482,22 @@ const EditEntryForm: React.FC<{
         value={tags}
         onChange={(e) => setTags(e.target.value)}
         placeholder="Tags (comma separated)"
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+        className="cyber-input w-full px-4 py-3 rounded-lg font-rajdhani"
       />
 
       <div className="flex space-x-2">
         <button
           onClick={handleSave}
-          className="flex items-center space-x-1 px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+          className="cyber-btn flex items-center space-x-1 px-4 py-2 bg-green-900/30 text-green-400 border border-green-500/50 rounded-lg hover:bg-green-900/50 transition-all font-rajdhani font-medium"
         >
           <Save className="w-4 h-4" />
-          <span>Save</span>
+          <span>SAVE</span>
         </button>
         <button
           onClick={onCancel}
-          className="px-3 py-1 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="cyber-btn px-4 py-2 text-purple-400 border border-purple-500/50 rounded-lg hover:bg-purple-900/20 transition-all font-rajdhani font-medium"
         >
-          Cancel
+          CANCEL
         </button>
       </div>
     </div>
