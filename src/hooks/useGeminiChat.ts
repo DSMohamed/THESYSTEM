@@ -90,6 +90,55 @@ export const useGeminiChat = () => {
       // Get AI response
       const aiResponse = await geminiService.generateResponse(content, language, userContext, chatHistory);
 
+      // Check if this is a workout creation request
+      const isWorkoutRequest = /(?:create|make|generate|plan|design|build|أنشئ|اصنع|خطط|صمم).*(?:workout|exercise|training|تمرين|تدريب)/i.test(content) ||
+                              /(?:workout|exercise|training|تمرين|تدريب).*(?:plan|routine|program|خطة|روتين|برنامج)/i.test(content);
+
+      if (isWorkoutRequest && user) {
+        // Try to parse workout from AI response
+        const parsedWorkout = geminiService.parseWorkoutFromText(aiResponse, language);
+        
+        if (parsedWorkout) {
+          // Add the parsed workout to user's workouts
+          addWorkout({
+            name: parsedWorkout.name,
+            exercises: parsedWorkout.exercises.map((exercise, index) => ({
+              id: (Date.now() + index).toString(),
+              name: exercise.name,
+              sets: exercise.sets,
+              reps: exercise.reps,
+              weight: exercise.weight,
+              restTime: exercise.restTime
+            })),
+            duration: parsedWorkout.duration,
+            date: new Date().toISOString().split('T')[0],
+            notes: parsedWorkout.notes || aiResponse,
+            userId: user.id
+          });
+
+          // Add a confirmation message
+          const confirmationMessage = language === 'en' 
+            ? `\n\n✅ I've automatically added "${parsedWorkout.name}" to your workouts with ${parsedWorkout.exercises.length} exercises!`
+            : `\n\n✅ تم إضافة "${parsedWorkout.name}" تلقائياً إلى تماrinك مع ${parsedWorkout.exercises.length} تمارين!`;
+          
+          // Update the AI response to include confirmation
+          const enhancedResponse = aiResponse + confirmationMessage;
+          
+          // Add AI message with confirmation
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            content: enhancedResponse,
+            isUser: false,
+            timestamp: new Date(),
+            language
+          };
+
+          setMessages(prev => [...prev, aiMessage]);
+          setIsTyping(false);
+          return;
+        }
+      }
+
       // Check for add task/workout command
       const addCommand = geminiService.parseAddCommand(aiResponse);
       if (addCommand && user) {
@@ -113,18 +162,6 @@ export const useGeminiChat = () => {
             userId: user.id
           });
         }
-      }
-
-      // If the user asked for a workout plan, auto-add it as a workout
-      if (/workout plan|خطة تمرين|create a workout plan|أنشئ لي خطة تمرين/i.test(content) && user) {
-        addWorkout({
-          name: language === 'ar' ? 'خطة تمرين' : 'Workout Plan',
-          exercises: [],
-          duration: 30,
-          date: new Date().toISOString().split('T')[0],
-          notes: aiResponse,
-          userId: user.id
-        });
       }
 
       // Add AI message
