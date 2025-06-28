@@ -24,18 +24,45 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   // Filter navigation: only show 'Users' for admin
   const filteredNavigation = navigation.filter(item => item.name !== 'Users' || user?.role === 'admin');
 
+  const handleNavClick = (href: string) => {
+    // Close sidebar on mobile when navigation item is clicked
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  const handleSettingsClick = () => {
+    navigate('/settings');
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  const handleLogoutClick = async () => {
+    try {
+      await signOut();
+      if (onClose) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full cyber-card border-r-2 neon-border-purple relative bg-gray-900/95 backdrop-blur-md">
       {/* Animated border effect */}
       <div className="absolute inset-0 animated-border rounded-none"></div>
       
       {/* Mobile Close Button */}
-      <button
-        onClick={onClose}
-        className="lg:hidden absolute top-4 right-4 z-10 cyber-btn p-2 rounded-lg"
-      >
-        <X className="w-5 h-5" />
-      </button>
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="lg:hidden absolute top-4 right-4 z-10 cyber-btn p-2 rounded-lg"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      )}
       
       {/* Logo */}
       <div className="flex items-center px-4 lg:px-6 py-4 lg:py-6 border-b border-purple-500/30 relative z-10">
@@ -80,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             <Link
               key={item.name}
               to={item.href}
-              onClick={onClose}
+              onClick={() => handleNavClick(item.href)}
               className={`group flex items-center px-3 lg:px-4 py-3 text-sm font-rajdhani font-medium rounded-lg transition-all duration-300 relative overflow-hidden ${
                 isActive
                   ? 'cyber-card neon-border text-cyan-400 neon-glow'
@@ -109,10 +136,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       {/* Bottom Actions */}
       <div className="p-2 lg:p-4 border-t border-purple-500/30 space-y-1 lg:space-y-2 relative z-10">
         <button
-          onClick={() => {
-            navigate('/settings');
-            onClose?.();
-          }}
+          onClick={handleSettingsClick}
           className="w-full flex items-center px-3 lg:px-4 py-3 text-sm font-rajdhani font-medium text-gray-300 rounded-lg hover:text-cyan-400 hover:bg-purple-900/20 transition-all duration-300"
         >
           <Settings className="mr-3 h-4 lg:h-5 w-4 lg:w-5 text-gray-400" />
@@ -120,10 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           <span className="text-xs text-purple-400 ml-auto font-rajdhani hidden lg:inline" dir="rtl">الإعدادات</span>
         </button>
         <button
-          onClick={() => {
-            signOut();
-            onClose?.();
-          }}
+          onClick={handleLogoutClick}
           className="w-full flex items-center px-3 lg:px-4 py-3 text-sm font-rajdhani font-medium text-red-400 rounded-lg hover:text-red-300 hover:bg-red-900/20 transition-all duration-300"
         >
           <LogOut className="mr-3 h-4 lg:h-5 w-4 lg:w-5 text-red-500" />
