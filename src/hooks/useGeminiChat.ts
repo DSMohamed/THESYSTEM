@@ -12,7 +12,13 @@ interface Message {
 }
 
 export const useGeminiChat = () => {
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const { user } = useAuth();
+  const { getUserTasks, getUserWorkouts, addTask, addWorkout } = useTask();
+
+  // Initialize with default messages
+  const getDefaultMessages = (): Message[] => [
     {
       id: '1',
       content: 'Hello! I\'m your AI assistant powered by Google Gemini. I can help you with tasks, workout planning, goal setting, and general conversation. I also speak Arabic fluently. How can I assist you today?',
@@ -27,32 +33,45 @@ export const useGeminiChat = () => {
       timestamp: new Date(),
       language: 'ar'
     }
-  ]);
+  ];
 
-  const [isTyping, setIsTyping] = useState(false);
-  const { user } = useAuth();
-  const { getUserTasks, getUserWorkouts, addTask, addWorkout } = useTask();
-
-  // Load chat history from localStorage on mount
+  // Load chat history from localStorage on mount and when user changes
   useEffect(() => {
     if (user?.id) {
       const saved = localStorage.getItem(`geminiChatHistory_${user.id}`);
       if (saved) {
         try {
-          const parsed = JSON.parse(saved).map((msg: any) => ({ ...msg, timestamp: new Date(msg.timestamp) }));
+          const parsed = JSON.parse(saved).map((msg: any) => ({ 
+            ...msg, 
+            timestamp: new Date(msg.timestamp) 
+          }));
           setMessages(parsed);
-        } catch {
-          // ignore
+        } catch (error) {
+          console.error('Error loading chat history:', error);
+          setMessages(getDefaultMessages());
         }
+      } else {
+        // No saved history, use default messages
+        setMessages(getDefaultMessages());
       }
+    } else {
+      // No user, clear messages
+      setMessages([]);
     }
   }, [user?.id]);
 
   // Save chat history to localStorage whenever messages change
   useEffect(() => {
-    if (user?.id) {
-      localStorage.setItem(`geminiChatHistory_${user.id}`,
-        JSON.stringify(messages.map(m => ({ ...m, timestamp: m.timestamp.toISOString() }))));
+    if (user?.id && messages.length > 0) {
+      try {
+        const messagesToSave = messages.map(m => ({ 
+          ...m, 
+          timestamp: m.timestamp.toISOString() 
+        }));
+        localStorage.setItem(`geminiChatHistory_${user.id}`, JSON.stringify(messagesToSave));
+      } catch (error) {
+        console.error('Error saving chat history:', error);
+      }
     }
   }, [messages, user?.id]);
 
