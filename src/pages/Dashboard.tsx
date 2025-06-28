@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, Clock, TrendingUp, Calendar, Dumbbell, BookOpen, Users } from 'lucide-react';
+import { CheckCircle2, Clock, TrendingUp, Calendar, Dumbbell, BookOpen, Users, Zap, Activity, Target } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTask } from '../contexts/TaskContext';
 
@@ -22,7 +22,8 @@ export const Dashboard: React.FC = () => {
       change: `${completionRate}%`,
       changeType: 'positive',
       icon: CheckCircle2,
-      color: 'from-green-500 to-emerald-600'
+      color: 'from-cyan-400 to-blue-600',
+      glowColor: 'rgba(0, 255, 255, 0.3)'
     },
     {
       name: 'Workouts This Week',
@@ -31,7 +32,8 @@ export const Dashboard: React.FC = () => {
       change: '+2 from last week',
       changeType: 'positive',
       icon: Dumbbell,
-      color: 'from-blue-500 to-cyan-600'
+      color: 'from-purple-500 to-pink-600',
+      glowColor: 'rgba(139, 92, 246, 0.3)'
     },
     {
       name: 'Active Streak',
@@ -40,16 +42,18 @@ export const Dashboard: React.FC = () => {
       change: 'Keep it up!',
       changeType: 'positive',
       icon: TrendingUp,
-      color: 'from-purple-500 to-pink-600'
+      color: 'from-green-400 to-emerald-600',
+      glowColor: 'rgba(34, 197, 94, 0.3)'
     },
     {
-      name: 'Journal Entries',
-      nameAr: 'المذكرات',
-      value: '12',
+      name: 'System Level',
+      nameAr: 'مستوى النظام',
+      value: '42',
       change: '+3 this week',
       changeType: 'positive',
-      icon: BookOpen,
-      color: 'from-orange-500 to-red-600'
+      icon: Zap,
+      color: 'from-yellow-400 to-orange-600',
+      glowColor: 'rgba(251, 191, 36, 0.3)'
     }
   ];
 
@@ -57,44 +61,55 @@ export const Dashboard: React.FC = () => {
   const upcomingTasks = userTasks.filter(task => !task.completed && task.dueDate).slice(0, 3);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-8">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-8 text-white">
-        <div className="flex items-center justify-between">
+      <div className="cyber-card rounded-2xl p-8 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-900/50 to-cyan-900/50"></div>
+        <div className="absolute inset-0 holographic opacity-20"></div>
+        
+        <div className="flex items-center justify-between relative z-10">
           <div>
-            <h1 className="text-3xl font-bold mb-2">
-              Welcome back, {user?.name?.split(' ')[0]}!
+            <h1 className="text-4xl font-orbitron font-bold mb-4 glitch cyber-text-glow" data-text={`NEXUS SYSTEM ONLINE`}>
+              NEXUS SYSTEM ONLINE
             </h1>
-            <p className="text-blue-100 text-lg">
-              You have {userTasks.filter(t => !t.completed).length} pending tasks today
+            <p className="text-cyan-400 text-lg font-rajdhani mb-2">
+              USER: {user?.name?.toUpperCase()} • STATUS: ACTIVE
             </p>
-            <div className="mt-4" dir="rtl">
-              <h2 className="text-xl font-semibold">مرحباً بعودتك، {user?.name?.split(' ')[0]}!</h2>
-              <p className="text-blue-100">لديك {userTasks.filter(t => !t.completed).length} مهام معلقة اليوم</p>
+            <p className="text-purple-400 font-rajdhani">
+              PENDING OPERATIONS: {userTasks.filter(t => !t.completed).length}
+            </p>
+            <div className="mt-6" dir="rtl">
+              <h2 className="text-xl font-rajdhani font-semibold text-cyan-400">مرحباً بعودتك، {user?.name?.split(' ')[0]}</h2>
+              <p className="text-purple-400 font-rajdhani">لديك {userTasks.filter(t => !t.completed).length} مهام معلقة اليوم</p>
             </div>
           </div>
           <div className="hidden md:block">
-            <Calendar className="w-24 h-24 text-blue-200" />
+            <div className="w-32 h-32 cyber-card rounded-full flex items-center justify-center neon-glow">
+              <Activity className="w-16 h-16 text-cyan-400 animate-pulse" />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <div key={stat.name} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
+        {stats.map((stat, index) => (
+          <div key={stat.name} className="cyber-card rounded-xl p-6 relative overflow-hidden group hover:neon-glow transition-all duration-300">
+            <div className="absolute inset-0 animated-border rounded-xl"></div>
+            
+            <div className="flex items-center justify-between relative z-10">
               <div>
-                <p className="text-sm font-medium text-gray-600">{stat.name}</p>
-                <p className="text-xs text-gray-400 mt-1" dir="rtl">{stat.nameAr}</p>
+                <p className="text-sm font-rajdhani font-medium text-purple-400 uppercase tracking-wide">{stat.name}</p>
+                <p className="text-xs text-cyan-400 mt-1 font-rajdhani" dir="rtl">{stat.nameAr}</p>
               </div>
-              <div className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-lg flex items-center justify-center`}>
+              <div className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-lg flex items-center justify-center relative`}
+                   style={{ boxShadow: `0 0 20px ${stat.glowColor}` }}>
                 <stat.icon className="w-6 h-6 text-white" />
               </div>
             </div>
-            <div className="mt-4">
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-              <p className={`text-sm ${stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'} mt-1`}>
+            <div className="mt-4 relative z-10">
+              <p className="text-3xl font-orbitron font-bold text-cyan-400 neon-text">{stat.value}</p>
+              <p className={`text-sm font-rajdhani mt-1 ${stat.changeType === 'positive' ? 'text-green-400' : 'text-red-400'}`}>
                 {stat.change}
               </p>
             </div>
@@ -102,53 +117,61 @@ export const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Tasks */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Tasks</h3>
-            <span className="text-sm text-gray-500" dir="rtl">المهام الحديثة</span>
+        <div className="cyber-card rounded-xl p-6 relative">
+          <div className="absolute inset-0 animated-border rounded-xl"></div>
+          
+          <div className="flex items-center justify-between mb-6 relative z-10">
+            <h3 className="text-lg font-orbitron font-semibold text-cyan-400 neon-text">RECENT OPERATIONS</h3>
+            <span className="text-sm text-purple-400 font-rajdhani" dir="rtl">المهام الحديثة</span>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 relative z-10">
             {recentTasks.map((task) => (
-              <div key={task.id} className="flex items-center space-x-3">
-                <div className={`w-2 h-2 rounded-full ${
-                  task.completed ? 'bg-green-500' : 
-                  task.priority === 'high' ? 'bg-red-500' :
-                  task.priority === 'medium' ? 'bg-yellow-500' : 'bg-gray-300'
-                }`} />
+              <div key={task.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-purple-900/20 transition-all duration-300">
+                <div className={`w-3 h-3 rounded-full ${
+                  task.completed ? 'bg-green-400 animate-pulse' : 
+                  task.priority === 'high' ? 'bg-red-400 animate-pulse' :
+                  task.priority === 'medium' ? 'bg-yellow-400 animate-pulse' : 'bg-gray-400'
+                }`} style={{ boxShadow: '0 0 10px currentColor' }} />
                 <div className="flex-1">
-                  <p className={`text-sm font-medium ${task.completed ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                    {task.title}
+                  <p className={`text-sm font-rajdhani font-medium ${task.completed ? 'text-gray-500 line-through' : 'text-white'}`}>
+                    {task.title.toUpperCase()}
                   </p>
-                  <p className="text-xs text-gray-500">{task.category}</p>
+                  <p className="text-xs text-purple-400 font-rajdhani">{task.category.toUpperCase()}</p>
                 </div>
-                {task.completed && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                {task.completed && <CheckCircle2 className="w-4 h-4 text-green-400" />}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Upcoming Tasks */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Upcoming Tasks</h3>
-            <span className="text-sm text-gray-500" dir="rtl">المهام القادمة</span>
+        {/* System Status */}
+        <div className="cyber-card rounded-xl p-6 relative">
+          <div className="absolute inset-0 animated-border rounded-xl"></div>
+          
+          <div className="flex items-center justify-between mb-6 relative z-10">
+            <h3 className="text-lg font-orbitron font-semibold text-cyan-400 neon-text">SYSTEM STATUS</h3>
+            <span className="text-sm text-purple-400 font-rajdhani" dir="rtl">حالة النظام</span>
           </div>
-          <div className="space-y-4">
-            {upcomingTasks.map((task) => (
-              <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{task.title}</p>
-                  <p className="text-xs text-gray-500">{task.dueDate}</p>
+          <div className="space-y-4 relative z-10">
+            {[
+              { label: 'CPU USAGE', value: 45, color: 'bg-cyan-400' },
+              { label: 'MEMORY', value: 67, color: 'bg-purple-400' },
+              { label: 'NETWORK', value: 89, color: 'bg-green-400' },
+              { label: 'STORAGE', value: 23, color: 'bg-yellow-400' }
+            ].map((item, index) => (
+              <div key={index} className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm font-rajdhani text-purple-400">{item.label}</span>
+                  <span className="text-sm font-orbitron text-cyan-400">{item.value}%</span>
                 </div>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  task.priority === 'high' ? 'bg-red-100 text-red-800' :
-                  task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {task.priority}
-                </span>
+                <div className="cyber-progress h-2 rounded-full">
+                  <div 
+                    className={`cyber-progress-bar h-full rounded-full ${item.color}`}
+                    style={{ width: `${item.value}%` }}
+                  ></div>
+                </div>
               </div>
             ))}
           </div>
@@ -156,24 +179,26 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="cyber-card rounded-xl p-6 relative">
+        <div className="absolute inset-0 animated-border rounded-xl"></div>
+        
+        <h3 className="text-lg font-orbitron font-semibold text-cyan-400 neon-text mb-6 relative z-10">QUICK ACCESS</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
           {[
-            { name: 'Add Task', nameAr: 'إضافة مهمة', icon: CheckCircle2, color: 'bg-blue-500' },
-            { name: 'Log Workout', nameAr: 'تسجيل تمرين', icon: Dumbbell, color: 'bg-green-500' },
-            { name: 'Write Journal', nameAr: 'كتابة مذكرة', icon: BookOpen, color: 'bg-purple-500' },
-            { name: 'Chat with AI', nameAr: 'محادثة الذكي', icon: Users, color: 'bg-orange-500' }
+            { name: 'Add Task', nameAr: 'إضافة مهمة', icon: CheckCircle2, color: 'from-blue-500 to-cyan-500' },
+            { name: 'Log Workout', nameAr: 'تسجيل تمرين', icon: Dumbbell, color: 'from-green-500 to-emerald-500' },
+            { name: 'Write Journal', nameAr: 'كتابة مذكرة', icon: BookOpen, color: 'from-purple-500 to-pink-500' },
+            { name: 'AI Assistant', nameAr: 'المساعد الذكي', icon: Target, color: 'from-orange-500 to-red-500' }
           ].map((action) => (
             <button
               key={action.name}
-              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="cyber-btn flex flex-col items-center p-6 rounded-lg transition-all duration-300 hover:neon-glow group"
             >
-              <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center mb-2`}>
-                <action.icon className="w-5 h-5 text-white" />
+              <div className={`w-12 h-12 bg-gradient-to-r ${action.color} rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
+                <action.icon className="w-6 h-6 text-white" />
               </div>
-              <span className="text-sm font-medium text-gray-900">{action.name}</span>
-              <span className="text-xs text-gray-500 mt-1" dir="rtl">{action.nameAr}</span>
+              <span className="text-sm font-rajdhani font-medium text-cyan-400 uppercase tracking-wide">{action.name}</span>
+              <span className="text-xs text-purple-400 mt-1 font-rajdhani" dir="rtl">{action.nameAr}</span>
             </button>
           ))}
         </div>
