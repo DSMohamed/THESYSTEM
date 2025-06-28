@@ -47,24 +47,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
   }, [sidebarOpen]);
 
-  // Close sidebar function - Enhanced with debug logging
+  // Simple close function
   const closeSidebar = () => {
-    console.log('Closing sidebar'); // Debug log
+    console.log('Closing sidebar from Layout');
     setSidebarOpen(false);
   };
 
-  // Toggle sidebar function
+  // Simple toggle function
   const toggleSidebar = () => {
-    console.log('Toggling sidebar, current state:', sidebarOpen); // Debug log
+    console.log('Toggling sidebar, current state:', sidebarOpen);
     setSidebarOpen(!sidebarOpen);
   };
 
-  // Handle overlay click
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Overlay clicked'); // Debug log
-    closeSidebar();
+  // Handle overlay click - simplified
+  const handleOverlayClick = () => {
+    console.log('Overlay clicked - closing sidebar');
+    setSidebarOpen(false);
   };
 
   return (
@@ -84,14 +82,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         ))}
       </div>
 
-      {/* Mobile Overlay - Enhanced with better event handling */}
+      {/* Mobile Overlay - Simplified */}
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-75 z-40 transition-opacity duration-300"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-75 z-40"
           onClick={handleOverlayClick}
-          onTouchEnd={handleOverlayClick}
-          aria-hidden="true"
-          style={{ touchAction: 'none' }}
         />
       )}
 
@@ -101,19 +96,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         w-64 flex-shrink-0 h-full
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <Sidebar onClose={closeSidebar} />
+        <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
       </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden relative z-10 w-full lg:w-auto">
-        {/* Mobile Menu Button - Enhanced with better positioning and event handling */}
-        <div className="lg:hidden absolute top-4 left-4 z-50">
+        {/* Mobile Menu Button */}
+        <div className="lg:hidden absolute top-4 left-4 z-60">
           <button
             type="button"
             onClick={toggleSidebar}
             className="cyber-btn p-3 rounded-lg neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
             aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
-            style={{ zIndex: 60 }}
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>

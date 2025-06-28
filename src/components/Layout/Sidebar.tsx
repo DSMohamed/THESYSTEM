@@ -13,10 +13,11 @@ const navigation = [
 ];
 
 interface SidebarProps {
+  isOpen?: boolean;
   onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const handleNavClick = (href: string) => {
     // Close sidebar on mobile when navigation item is clicked
     if (onClose) {
+      console.log('Navigation clicked - closing sidebar');
       onClose();
     }
   };
@@ -34,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const handleSettingsClick = () => {
     navigate('/settings');
     if (onClose) {
+      console.log('Settings clicked - closing sidebar');
       onClose();
     }
   };
@@ -42,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     try {
       await signOut();
       if (onClose) {
+        console.log('Logout clicked - closing sidebar');
         onClose();
       }
     } catch (error) {
@@ -49,11 +53,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     }
   };
 
-  // Fixed close button handler with proper event handling
-  const handleCloseClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Close button clicked'); // Debug log
+  // SIMPLIFIED close button handler
+  const handleCloseClick = () => {
+    console.log('X button clicked - calling onClose');
     if (onClose) {
       onClose();
     }
@@ -76,18 +78,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           </div>
         </div>
         
-        {/* Mobile Close Button - Enhanced with better event handling */}
-        {onClose && (
-          <button
-            type="button"
-            onClick={handleCloseClick}
-            className="lg:hidden cyber-btn p-2 rounded-lg hover:neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
-            aria-label="Close sidebar"
-            style={{ zIndex: 60 }}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
+        {/* SIMPLIFIED Mobile Close Button */}
+        <button
+          onClick={handleCloseClick}
+          className="lg:hidden cyber-btn p-2 rounded-lg hover:neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          aria-label="Close sidebar"
+          style={{ zIndex: 100 }}
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* User Profile */}
