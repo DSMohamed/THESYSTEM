@@ -22,9 +22,39 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close sidebar when clicking outside
+  // Handle escape key to close sidebar
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [sidebarOpen]);
+
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [sidebarOpen]);
+
+  // Close sidebar function
   const closeSidebar = () => {
     setSidebarOpen(false);
+  };
+
+  // Toggle sidebar function
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
   };
 
   return (
@@ -47,8 +77,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-75 z-40"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-75 z-40 transition-opacity duration-300"
           onClick={closeSidebar}
+          aria-hidden="true"
         />
       )}
 
@@ -66,8 +97,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Mobile Menu Button - Positioned over header */}
         <div className="lg:hidden absolute top-4 left-4 z-50">
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="cyber-btn p-3 rounded-lg neon-glow"
+            onClick={toggleSidebar}
+            className="cyber-btn p-3 rounded-lg neon-glow transition-all duration-300"
+            aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>

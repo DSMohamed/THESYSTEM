@@ -49,23 +49,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     }
   };
 
+  const handleCloseClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
     <div className="flex flex-col h-full cyber-card border-r-2 neon-border-purple relative bg-gray-900/95 backdrop-blur-md">
       {/* Animated border effect */}
       <div className="absolute inset-0 animated-border rounded-none"></div>
       
-      {/* Mobile Close Button */}
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="lg:hidden absolute top-4 right-4 z-10 cyber-btn p-2 rounded-lg"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      )}
-      
-      {/* Logo */}
-      <div className="flex items-center px-4 lg:px-6 py-4 lg:py-6 border-b border-purple-500/30 relative z-10">
+      {/* Header with Logo and Close Button */}
+      <div className="flex items-center justify-between px-4 lg:px-6 py-4 lg:py-6 border-b border-purple-500/30 relative z-10">
         <div className="flex items-center space-x-3">
           <div className="w-8 lg:w-10 h-8 lg:h-10 bg-gradient-to-r from-cyan-400 to-purple-600 rounded-lg flex items-center justify-center neon-glow">
             <Zap className="w-4 lg:w-6 h-4 lg:h-6 text-white" />
@@ -75,6 +73,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             <p className="text-xs text-purple-400 font-rajdhani">SYSTEM v2.0</p>
           </div>
         </div>
+        
+        {/* Mobile Close Button */}
+        {onClose && (
+          <button
+            onClick={handleCloseClick}
+            className="lg:hidden cyber-btn p-2 rounded-lg hover:neon-glow transition-all duration-300"
+            aria-label="Close sidebar"
+          >
+            <X className="w-5 h-5 text-cyan-400" />
+          </button>
+        )}
       </div>
 
       {/* User Profile */}
