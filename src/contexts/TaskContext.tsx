@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export interface Task {
   id: string;
@@ -108,9 +108,46 @@ const mockWorkouts: WorkoutSession[] = [
   }
 ];
 
+// Helper functions for localStorage
+const loadFromStorage = <T>(key: string, defaultValue: T): T => {
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (error) {
+    console.error(`Error loading ${key} from localStorage:`, error);
+  }
+  return defaultValue;
+};
+
+const saveToStorage = <T>(key: string, data: T): void => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error(`Error saving ${key} to localStorage:`, error);
+  }
+};
+
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
-  const [workouts, setWorkouts] = useState<WorkoutSession[]>(mockWorkouts);
+  // Initialize state with data from localStorage or mock data
+  const [tasks, setTasks] = useState<Task[]>(() => 
+    loadFromStorage('dailyflow_tasks', mockTasks)
+  );
+  
+  const [workouts, setWorkouts] = useState<WorkoutSession[]>(() => 
+    loadFromStorage('dailyflow_workouts', mockWorkouts)
+  );
+
+  // Save tasks to localStorage whenever tasks change
+  useEffect(() => {
+    saveToStorage('dailyflow_tasks', tasks);
+  }, [tasks]);
+
+  // Save workouts to localStorage whenever workouts change
+  useEffect(() => {
+    saveToStorage('dailyflow_workouts', workouts);
+  }, [workouts]);
 
   const addTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
     const newTask: Task = {
