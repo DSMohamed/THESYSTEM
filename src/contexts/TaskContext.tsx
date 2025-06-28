@@ -109,7 +109,7 @@ const mockWorkouts: WorkoutSession[] = [
 ];
 
 // Helper functions for localStorage
-const loadFromStorage = <T>(key: string, defaultValue: T): T => {
+const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
   try {
     const saved = localStorage.getItem(key);
     if (saved) {
@@ -121,7 +121,7 @@ const loadFromStorage = <T>(key: string, defaultValue: T): T => {
   return defaultValue;
 };
 
-const saveToStorage = <T>(key: string, data: T): void => {
+const saveToStorage = <T,>(key: string, data: T): void => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
