@@ -8,6 +8,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
+  // FIXED: Start with sidebar closed by default
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Close sidebar when screen size changes to desktop
@@ -82,7 +83,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         ))}
       </div>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay - Only show when sidebar is open */}
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black bg-opacity-75 z-40"
@@ -91,7 +92,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Hidden by default on mobile, always visible on desktop */}
       <div className={`
         fixed lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out z-50
         w-64 flex-shrink-0 h-full
@@ -102,7 +103,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden relative z-10 w-full lg:w-auto">
-        {/* Mobile Menu Button */}
+        {/* Mobile Menu Button - Only show on mobile */}
         <div className="lg:hidden absolute top-4 left-4 z-60">
           <button
             type="button"
