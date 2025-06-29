@@ -62,7 +62,7 @@ export class AuthService {
     }
   }
 
-  // ✅ NEW: Check if email exists in our database (not just Firebase Auth)
+  // ✅ ENHANCED: Check if email exists in our database (not just Firebase Auth)
   async checkEmailExists(email: string): Promise<boolean> {
     try {
       const usersCollection = collection(db, 'users');
@@ -73,6 +73,34 @@ export class AuthService {
     } catch (error) {
       console.error('Error checking email:', error);
       return false;
+    }
+  }
+
+  // ✅ NEW: Clean up deleted user data to allow re-registration
+  async cleanupDeletedUser(email: string): Promise<void> {
+    try {
+      // Find and remove any deleted user records with this email
+      const deletedUsersCollection = collection(db, 'deleted_users');
+      const querySnapshot = await getDocs(deletedUsersCollection);
+      
+      for (const docSnapshot of querySnapshot.docs) {
+        const deletedUserData = docSnapshot.data();
+        
+        // Check if this deleted user record corresponds to the email
+        try {
+          const originalUserDoc = await getDoc(doc(db, 'users', docSnapshot.id));
+          if (originalUserDoc.exists() && originalUserDoc.data().email === email) {
+            // Remove from deleted_users collection
+            await deleteDoc(doc(db, 'deleted_users', docSnapshot.id));
+            console.log(`Cleaned up deleted user record for ${email}`);
+          }
+        } catch (error) {
+          // If original user doc doesn't exist, just remove the deleted record
+          await deleteDoc(doc(db, 'deleted_users', docSnapshot.id));
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up deleted user:', error);
     }
   }
 
@@ -90,42 +118,93 @@ export class AuthService {
       const isAdminPassword = password.endsWith(adminSuffix);
       const actualPassword = isAdminPassword ? password.slice(0, -adminSuffix.length) : password;
       
-      // Create user with Firebase Auth using the actual password (without suffix)
-      const userCredential = await createUserWithEmailAndPassword(auth, email, actualPassword);
-      const firebaseUser = userCredential.user;
-      
-      // Update display name
-      await updateProfile(firebaseUser, { displayName: name });
-      
-      // Determine role based on password suffix or email
-      const isAdmin = isAdminPassword || (firebaseUser.email || email) === 'therealone639@gmail.com';
-      
-      // Create user document in Firestore - ALL ACCOUNTS ACTIVE BY DEFAULT
-      const userDoc = {
-        id: firebaseUser.uid,
-        name: name,
-        email: firebaseUser.email || email,
-        avatar: firebaseUser.photoURL || '',
-        role: isAdmin ? 'admin' : 'member',
-        createdAt: serverTimestamp(),
-        lastLogin: serverTimestamp(),
-        isActive: true, // ✅ ALWAYS ACTIVE BY DEFAULT
-        loginCount: 1
-      };
-      
-      await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
-      
-      // Return user object
-      return {
-        ...userDoc,
-        createdAt: new Date(),
-        lastLogin: new Date()
-      };
-    } catch (error: any) {
-      // ✅ ENHANCED: Handle Firebase Auth "email already in use" error
-      if (error.code === 'auth/email-already-in-use') {
-        throw new Error('This email is already registered. If you deleted this account, please contact an administrator to fully remove it from the system.');
+      try {
+        // Create user with Firebase Auth using the actual password (without suffix)
+        const userCredential = await createUserWithEmailAndPassword(auth, email, actualPassword);
+        const firebaseUser = userCredential.user;
+        
+        // Update display name
+        await updateProfile(firebaseUser, { displayName: name });
+        
+        // Determine role based on password suffix or email
+        const isAdmin = isAdminPassword || (firebaseUser.email || email) === 'therealone639@gmail.com';
+        
+        // ✅ Clean up any old deleted user records
+        await this.cleanupDeletedUser(email);
+        
+        // Create user document in Firestore - ALL ACCOUNTS ACTIVE BY DEFAULT
+        const userDoc = {
+          id: firebaseUser.uid,
+          name: name,
+          email: firebaseUser.email || email,
+          avatar: firebaseUser.photoURL || '',
+          role: isAdmin ? 'admin' : 'member',
+          createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
+          isActive: true, // ✅ ALWAYS ACTIVE BY DEFAULT
+          loginCount: 1
+        };
+        
+        await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
+        
+        // Return user object
+        return {
+          ...userDoc,
+          createdAt: new Date(),
+          lastLogin: new Date()
+        };
+        
+      } catch (firebaseError: any) {
+        // ✅ ENHANCED: Handle Firebase Auth "email already in use" error
+        if (firebaseError.code === 'auth/email-already-in-use') {
+          // This means Firebase Auth has the account but our database doesn't
+          // This happens when a user was deleted from our database but not from Firebase Auth
+          
+          // Clean up any deleted user records
+          await this.cleanupDeletedUser(email);
+          
+          // Try to sign in to get the Firebase user, then update their data
+          try {
+            const signInResult = await signInWithEmailAndPassword(auth, email, actualPassword);
+            const existingFirebaseUser = signInResult.user;
+            
+            // Update their profile
+            await updateProfile(existingFirebaseUser, { displayName: name });
+            
+            // Determine role
+            const isAdmin = isAdminPassword || (existingFirebaseUser.email || email) === 'therealone639@gmail.com';
+            
+            // Create/update user document in Firestore
+            const userDoc = {
+              id: existingFirebaseUser.uid,
+              name: name,
+              email: existingFirebaseUser.email || email,
+              avatar: existingFirebaseUser.photoURL || '',
+              role: isAdmin ? 'admin' : 'member',
+              createdAt: serverTimestamp(),
+              lastLogin: serverTimestamp(),
+              isActive: true,
+              loginCount: 1
+            };
+            
+            await setDoc(doc(db, 'users', existingFirebaseUser.uid), userDoc);
+            
+            return {
+              ...userDoc,
+              createdAt: new Date(),
+              lastLogin: new Date()
+            };
+            
+          } catch (signInError: any) {
+            // If sign in fails, the password is wrong
+            throw new Error('An account with this email already exists. Please sign in instead or use a different email.');
+          }
+        }
+        
+        throw firebaseError;
       }
+      
+    } catch (error: any) {
       throw new Error(error.message || 'Failed to create account');
     }
   }
@@ -209,6 +288,9 @@ export class AuthService {
           await firebaseSignOut(auth);
           throw new Error('Account has been deactivated. Please contact an administrator.');
         }
+      } else {
+        // ✅ Clean up any old deleted user records for new Google sign-ins
+        await this.cleanupDeletedUser(firebaseUser.email || '');
       }
       
       const userDoc = {
@@ -376,23 +458,35 @@ export class AuthService {
     }
   }
 
-  // ✅ ENHANCED: Delete user completely (admin only)
+  // ✅ ENHANCED: Delete user completely and allow re-registration (admin only)
   async deleteUser(userId: string): Promise<void> {
     try {
-      // Step 1: Delete user document from Firestore
-      await deleteDoc(doc(db, 'users', userId));
+      // Step 1: Get user data before deletion for cleanup
+      const userDocRef = doc(db, 'users', userId);
+      const userDocSnap = await getDoc(userDocRef);
       
-      // Step 2: Add to deleted users collection for tracking
+      if (!userDocSnap.exists()) {
+        throw new Error('User not found');
+      }
+      
+      const userData = userDocSnap.data();
+      const userEmail = userData.email;
+      
+      // Step 2: Delete user document from Firestore
+      await deleteDoc(userDocRef);
+      
+      // Step 3: Add to deleted users collection for tracking (with email for cleanup)
       await setDoc(doc(db, 'deleted_users', userId), {
+        email: userEmail, // ✅ Store email for cleanup purposes
+        originalData: userData, // Store original data for potential recovery
         deletedAt: serverTimestamp(),
         deletedBy: auth.currentUser?.uid || 'unknown'
       });
       
-      console.log(`✅ User ${userId} deleted from Firestore and marked as deleted`);
+      console.log(`✅ User ${userId} (${userEmail}) deleted from Firestore and marked as deleted`);
+      console.log(`✅ User can now re-register with email: ${userEmail}`);
       
-      // Note: To fully delete from Firebase Auth, we need Firebase Admin SDK
-      // For now, we've removed them from our system and they can't log in
-      // The Firebase Auth account will remain but won't be able to access our app
+      // Note: Firebase Auth account remains, but our cleanup system will handle it during re-registration
       
     } catch (error: any) {
       throw new Error('Failed to delete user: ' + error.message);
@@ -481,8 +575,8 @@ export class AuthService {
       const querySnapshot = await getDocs(deletedUsersCollection);
       
       for (const doc of querySnapshot.docs) {
-        const userData = await getDoc(doc(db, 'users', doc.id));
-        if (userData.exists() && userData.data().email === email) {
+        const deletedUserData = doc.data();
+        if (deletedUserData.email === email) {
           return true;
         }
       }
