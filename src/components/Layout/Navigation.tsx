@@ -107,12 +107,12 @@ export const Navigation: React.FC<NavigationProps> = ({ isOpen, onClose, onToggl
       <div className={`
         /* Desktop: always visible, full height */
         lg:relative lg:translate-x-0 lg:w-full lg:h-full lg:block
-        /* Mobile: fixed overlay with transform */
+        /* Mobile: fixed overlay with transform - HIDDEN BY DEFAULT */
         fixed lg:static top-0 left-0 h-full w-80 z-50
         transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        /* Hide completely on desktop when not needed */
-        lg:transform-none
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        /* Ensure proper display states */
+        ${isOpen ? 'block' : 'hidden lg:block'}
       `}>
         <div className="h-full cyber-card border-r-2 neon-border-purple bg-gray-900/95 backdrop-blur-md flex flex-col">
           {/* Animated border effect */}
