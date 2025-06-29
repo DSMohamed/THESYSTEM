@@ -30,7 +30,9 @@ import {
   RefreshCw,
   FileText,
   Star,
-  TrendingUp
+  TrendingUp,
+  ImageIcon,
+  X
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
@@ -46,6 +48,12 @@ export const Settings: React.FC = () => {
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  // Image upload states
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   // Password settings
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -58,14 +66,114 @@ export const Settings: React.FC = () => {
   // Import/Export
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Image upload functions
+  const handleImageUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setProfileMsg('Please select a valid image file');
+      setTimeout(() => setProfileMsg(null), 5000);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      setProfileMsg('Image size must be less than 5MB');
+      setTimeout(() => setProfileMsg(null), 5000);
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      // Create a preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 100);
+
+      // Convert to base64 for storage (in a real app, you'd upload to a service like Firebase Storage)
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      // Complete the progress
+      setUploadProgress(100);
+      clearInterval(progressInterval);
+
+      // Update avatar state
+      setAvatar(base64);
+      setProfileMsg('Image uploaded successfully! Click "Update Profile" to save.');
+      
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+        setProfileMsg(null);
+      }, 2000);
+
+    } catch (error) {
+      setProfileMsg('Failed to upload image. Please try again.');
+      setIsUploading(false);
+      setUploadProgress(0);
+      setTimeout(() => setProfileMsg(null), 5000);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleImageUpload(files[0]);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleImageUpload(files[0]);
+    }
+  };
+
+  const removePreviewImage = () => {
+    setPreviewImage(null);
+    setAvatar(user?.avatar || '');
+  };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileMsg(null);
     setProfileLoading(true);
     try {
-      await authService.updateProfile(name, avatar);
+      const finalAvatar = previewImage || avatar;
+      await authService.updateProfile(name, finalAvatar);
       setProfileMsg('Profile updated successfully!');
+      setPreviewImage(null);
       setTimeout(() => setProfileMsg(null), 3000);
     } catch (err: any) {
       setProfileMsg(err.message || 'Failed to update profile');
@@ -271,6 +379,88 @@ export const Settings: React.FC = () => {
           </div>
 
           <form onSubmit={handleProfileUpdate} className="space-y-4 relative z-10">
+            {/* Profile Picture Upload */}
+            <div>
+              <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
+                Avatar Protocol
+              </label>
+              
+              {/* Current/Preview Avatar */}
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="relative">
+                  <img
+                    className="w-16 h-16 rounded-full object-cover border-2 neon-border"
+                    src={previewImage || avatar || user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150'}
+                    alt="Profile"
+                  />
+                  {previewImage && (
+                    <button
+                      type="button"
+                      onClick={removePreviewImage}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-cyan-400 font-rajdhani">
+                    {previewImage ? 'New image ready to save' : 'Current profile image'}
+                  </p>
+                  <p className="text-xs text-purple-400 font-rajdhani">
+                    Drag & drop or click to upload
+                  </p>
+                </div>
+              </div>
+
+              {/* Drag & Drop Zone */}
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 cursor-pointer ${
+                  isDragging 
+                    ? 'border-cyan-400 bg-cyan-900/20 neon-glow' 
+                    : 'border-purple-500/50 hover:border-cyan-400/70 hover:bg-purple-900/20'
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => imageInputRef.current?.click()}
+              >
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                
+                {isUploading ? (
+                  <div className="space-y-3">
+                    <RefreshCw className="w-8 h-8 text-cyan-400 mx-auto animate-spin" />
+                    <p className="text-cyan-400 font-rajdhani font-medium">UPLOADING IMAGE...</p>
+                    <div className="w-full cyber-progress h-2 rounded-full">
+                      <div 
+                        className="cyber-progress-bar h-full rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-purple-400 font-rajdhani">{uploadProgress}% complete</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <ImageIcon className="w-8 h-8 text-purple-400 mx-auto" />
+                    <div>
+                      <p className="text-cyan-400 font-rajdhani font-medium">
+                        {isDragging ? 'DROP IMAGE HERE' : 'DRAG & DROP IMAGE'}
+                      </p>
+                      <p className="text-xs text-purple-400 font-rajdhani mt-1">
+                        or click to browse • Max 5MB • JPG, PNG, GIF
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
                 User Identifier
@@ -283,22 +473,6 @@ export const Settings: React.FC = () => {
                   onChange={(e) => setName(e.target.value)}
                   className="cyber-input w-full pl-10 pr-4 py-3 rounded-lg font-rajdhani"
                   required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-rajdhani font-medium text-purple-400 mb-2 uppercase tracking-wide">
-                Avatar Protocol
-              </label>
-              <div className="relative">
-                <Camera className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-cyan-400" />
-                <input
-                  type="text"
-                  value={avatar}
-                  onChange={(e) => setAvatar(e.target.value)}
-                  className="cyber-input w-full pl-10 pr-4 py-3 rounded-lg font-rajdhani"
-                  placeholder="Avatar URL"
                 />
               </div>
             </div>
@@ -813,7 +987,7 @@ export const Settings: React.FC = () => {
               <p className="text-xs text-yellow-300 mt-1 font-rajdhani">
                 All data is stored locally on your device. Export your data regularly to prevent loss. 
                 Clearing data will permanently remove all tasks, workouts, achievements, and settings.
-                Settings are automatically saved when changed.
+                Settings are automatically saved when changed. Profile images are stored as base64 data.
               </p>
               <p className="text-xs text-yellow-300 mt-1 font-rajdhani" dir="rtl">
                 جميع البيانات محفوظة محلياً على جهازك. قم بتصدير بياناتك بانتظام لمنع فقدانها.
