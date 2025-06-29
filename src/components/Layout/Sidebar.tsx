@@ -40,15 +40,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const handleNavClick = (href: string) => {
     // Close sidebar on mobile when navigation item is clicked
     if (onClose) {
-      console.log('Navigation clicked - closing sidebar');
       onClose();
     }
+    navigate(href);
   };
 
   const handleSettingsClick = () => {
     navigate('/settings');
     if (onClose) {
-      console.log('Settings clicked - closing sidebar');
       onClose();
     }
   };
@@ -57,7 +56,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     try {
       await signOut();
       if (onClose) {
-        console.log('Logout clicked - closing sidebar');
         onClose();
       }
     } catch (error) {
@@ -66,13 +64,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   };
 
   // DIRECT close handler - no event object needed
-  const closeSidebar = () => {
-    console.log('DIRECT CLOSE CALLED');
+  const closeSidebar = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (onClose) {
-      console.log('Calling onClose function');
       onClose();
-    } else {
-      console.log('onClose is not available');
     }
   };
 
@@ -93,23 +91,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
         
-        {/* FIXED Mobile Close Button */}
+        {/* Mobile Close Button */}
         <div className="lg:hidden">
           <button
             type="button"
             onClick={closeSidebar}
-            onMouseDown={closeSidebar}
-            onTouchStart={closeSidebar}
-            className="cyber-btn p-3 rounded-lg hover:neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-purple-900/30 border border-cyan-400/50"
+            className="cyber-btn p-2 rounded-lg hover:neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-purple-900/30 border border-cyan-400/50"
             aria-label="Close sidebar"
             style={{ 
               zIndex: 9999,
               position: 'relative',
-              minWidth: '44px',
-              minHeight: '44px'
+              minWidth: '40px',
+              minHeight: '40px'
             }}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -141,11 +137,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {filteredNavigation.map((item) => {
           const isActive = location.pathname === item.href;
           return (
-            <Link
+            <button
               key={item.name}
-              to={item.href}
               onClick={() => handleNavClick(item.href)}
-              className={`group flex items-center px-3 lg:px-4 py-3 text-sm font-rajdhani font-medium rounded-lg transition-all duration-300 relative overflow-hidden ${
+              className={`group flex items-center w-full px-3 lg:px-4 py-3 text-sm font-rajdhani font-medium rounded-lg transition-all duration-300 relative overflow-hidden ${
                 isActive
                   ? 'cyber-card neon-border text-cyan-400 neon-glow'
                   : 'text-gray-300 hover:text-cyan-400 hover:bg-purple-900/20'
@@ -159,13 +154,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   isActive ? 'text-cyan-400 neon-text' : 'text-gray-400 group-hover:text-cyan-400'
                 }`}
               />
-              <span className="flex-1 relative z-10 font-medium tracking-wide text-xs lg:text-sm">
+              <span className="flex-1 relative z-10 font-medium tracking-wide text-xs lg:text-sm text-left">
                 {item.name.toUpperCase()}
               </span>
               <span className="text-xs text-purple-400 ml-2 relative z-10 font-rajdhani hidden lg:inline" dir="rtl">
                 {item.nameAr}
               </span>
-            </Link>
+            </button>
           );
         })}
       </nav>

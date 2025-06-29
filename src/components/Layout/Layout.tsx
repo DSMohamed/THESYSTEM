@@ -8,7 +8,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  // FIXED: Start with sidebar closed by default
+  // FIXED: Start with sidebar closed by default on all screen sizes
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Close sidebar when screen size changes to desktop
@@ -37,7 +37,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // Prevent body scroll when sidebar is open on mobile
   useEffect(() => {
-    if (sidebarOpen) {
+    if (sidebarOpen && window.innerWidth < 1024) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -50,19 +50,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // DIRECT close function - no parameters
   const closeSidebar = () => {
-    console.log('Layout closeSidebar called - setting state to false');
     setSidebarOpen(false);
   };
 
   // DIRECT toggle function
   const toggleSidebar = () => {
-    console.log('Layout toggleSidebar called, current state:', sidebarOpen);
     setSidebarOpen(!sidebarOpen);
   };
 
   // DIRECT overlay click handler
-  const handleOverlayClick = () => {
-    console.log('Overlay clicked - closing sidebar');
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setSidebarOpen(false);
   };
 
@@ -83,7 +82,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         ))}
       </div>
 
-      {/* Mobile Overlay - Only show when sidebar is open */}
+      {/* Mobile Overlay - Only show when sidebar is open on mobile */}
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black bg-opacity-75 z-40"
@@ -94,7 +93,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Sidebar - Hidden by default on mobile, always visible on desktop */}
       <div className={`
-        fixed lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out z-50
+        fixed lg:relative transition-transform duration-300 ease-in-out z-50
         w-64 flex-shrink-0 h-full
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
@@ -102,13 +101,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden relative z-10 w-full lg:w-auto">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
         {/* Mobile Menu Button - Only show on mobile */}
         <div className="lg:hidden absolute top-4 left-4 z-60">
           <button
             type="button"
             onClick={toggleSidebar}
-            onMouseDown={toggleSidebar}
             className="cyber-btn p-3 rounded-lg neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-purple-900/50 border border-cyan-400/50"
             aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
             style={{ 
