@@ -29,26 +29,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const userData = await authService.getCurrentUserData();
         if (userData) {
-          setUser(userData);
-          setUsers([userData]);
+          // ✅ CRITICAL: Check if user still exists in database and is active
+          const isUserValid = await authService.validateUserExists(userData.id);
+          
+          if (isUserValid) {
+            setUser(userData);
+            setUsers([userData]);
+          } else {
+            // User was deleted or deactivated - force sign out
+            console.log('User no longer exists or is inactive - signing out');
+            await authService.signOut();
+            setUser(null);
+            setUsers([]);
+            setError('Your account has been deactivated or removed. Please contact an administrator.');
+          }
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
+        // If there's an error checking user validity, sign them out for security
+        await authService.signOut();
+        setUser(null);
+        setUsers([]);
       } finally {
         setIsLoading(false);
       }
     };
 
     initializeAuth();
-  }, []);
+
+    // Set up periodic validation check (every 30 seconds)
+    const validationInterval = setInterval(async () => {
+      if (user) {
+        try {
+          const isUserValid = await authService.validateUserExists(user.id);
+          if (!isUserValid) {
+            console.log('User validation failed - signing out');
+            await authService.signOut();
+            setUser(null);
+            setUsers([]);
+            setError('Your account has been deactivated or removed. Please contact an administrator.');
+          }
+        } catch (error) {
+          console.error('User validation error:', error);
+        }
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(validationInterval);
+  }, [user?.id]);
 
   const signUp = async (email: string, password: string, name: string): Promise<void> => {
     try {
       setError(null);
       setIsLoading(true);
       const userData = await authService.signUp(email, password, name);
-      setUser(userData);
-      setUsers([userData]);
+      
+      // Validate the new user
+      const isUserValid = await authService.validateUserExists(userData.id);
+      if (isUserValid) {
+        setUser(userData);
+        setUsers([userData]);
+      } else {
+        throw new Error('Account creation failed - please try again');
+      }
     } catch (error: any) {
       setError(error.message);
       throw error;
@@ -62,8 +105,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       setIsLoading(true);
       const userData = await authService.signIn(email, password);
-      setUser(userData);
-      setUsers([userData]);
+      
+      // ✅ CRITICAL: Validate user exists and is active after sign in
+      const isUserValid = await authService.validateUserExists(userData.id);
+      if (isUserValid) {
+        setUser(userData);
+        setUsers([userData]);
+      } else {
+        // User exists in Firebase Auth but not in database or is inactive
+        await authService.signOut();
+        throw new Error('Account has been deactivated or removed. Please contact an administrator.');
+      }
     } catch (error: any) {
       setError(error.message);
       throw error;
@@ -77,8 +129,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       setIsLoading(true);
       const userData = await authService.signInWithGoogle();
-      setUser(userData);
-      setUsers([userData]);
+      
+      // Validate the user
+      const isUserValid = await authService.validateUserExists(userData.id);
+      if (isUserValid) {
+        setUser(userData);
+        setUsers([userData]);
+      } else {
+        await authService.signOut();
+        throw new Error('Account has been deactivated or removed. Please contact an administrator.');
+      }
     } catch (error: any) {
       setError(error.message);
       throw error;

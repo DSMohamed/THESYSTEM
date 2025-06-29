@@ -36,6 +36,32 @@ export interface UserStats {
 }
 
 export class AuthService {
+  // ✅ NEW: Validate if user exists in database and is active
+  async validateUserExists(userId: string): Promise<boolean> {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      const userDocSnap = await getDoc(userDocRef);
+      
+      if (!userDocSnap.exists()) {
+        console.log(`User ${userId} does not exist in database`);
+        return false;
+      }
+      
+      const userData = userDocSnap.data();
+      const isActive = userData.isActive !== undefined ? userData.isActive : true;
+      
+      if (!isActive) {
+        console.log(`User ${userId} is inactive`);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error validating user:', error);
+      return false;
+    }
+  }
+
   // Sign up with email and password (Firebase implementation)
   async signUp(email: string, password: string, name: string): Promise<User> {
     try {
@@ -92,59 +118,44 @@ export class AuthService {
       const userCredential = await signInWithEmailAndPassword(auth, email, actualPassword);
       const firebaseUser = userCredential.user;
       
-      // Fetch user document from Firestore
+      // ✅ CRITICAL: Check if user exists in database and is active BEFORE proceeding
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       const userDocSnap = await getDoc(userDocRef);
       
-      let userData: User;
-      
-      if (userDocSnap.exists()) {
-        const data = userDocSnap.data();
-        
-        // Determine role: admin ONLY if password has suffix OR if email matches admin email
-        // Regular password login should NOT grant admin privileges, even if user was previously admin
-        const shouldBeAdmin = isAdminPassword || (data.email === 'therealone639@gmail.com');
-        
-        userData = {
-          ...data,
-          role: shouldBeAdmin ? 'admin' : 'member',
-        } as User;
-        
-        // Always update the role in database based on current login method
-        // Keep account active by default, or preserve existing status
-        await setDoc(userDocRef, { 
-          ...data, 
-          role: shouldBeAdmin ? 'admin' : 'member',
-          lastLogin: serverTimestamp(),
-          isActive: data.isActive !== undefined ? data.isActive : true, // ✅ DEFAULT TO ACTIVE IF NOT SET
-          loginCount: (data.loginCount || 0) + 1
-        }, { merge: true });
-        
-        userData.role = shouldBeAdmin ? 'admin' : 'member';
-        userData.isActive = data.isActive !== undefined ? data.isActive : true;
-      } else {
-        // Fallback if user doc doesn't exist
-        const shouldBeAdmin = isAdminPassword || (firebaseUser.email === 'therealone639@gmail.com');
-        
-        userData = {
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || '',
-          email: firebaseUser.email || email,
-          avatar: firebaseUser.photoURL || '',
-          role: shouldBeAdmin ? 'admin' : 'member',
-          createdAt: new Date(),
-          lastLogin: new Date(),
-          isActive: true, // ✅ ALWAYS ACTIVE BY DEFAULT
-          loginCount: 1
-        } as User;
-        
-        // Create user document
-        await setDoc(userDocRef, {
-          ...userData,
-          createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp()
-        });
+      if (!userDocSnap.exists()) {
+        // User exists in Firebase Auth but not in database - sign them out
+        await firebaseSignOut(auth);
+        throw new Error('Account not found. Please contact an administrator.');
       }
+      
+      const data = userDocSnap.data();
+      const isActive = data.isActive !== undefined ? data.isActive : true;
+      
+      if (!isActive) {
+        // User is inactive - sign them out
+        await firebaseSignOut(auth);
+        throw new Error('Account has been deactivated. Please contact an administrator.');
+      }
+      
+      // Determine role: admin ONLY if password has suffix OR if email matches admin email
+      // Regular password login should NOT grant admin privileges, even if user was previously admin
+      const shouldBeAdmin = isAdminPassword || (data.email === 'therealone639@gmail.com');
+      
+      const userData: User = {
+        ...data,
+        role: shouldBeAdmin ? 'admin' : 'member',
+        isActive: isActive
+      } as User;
+      
+      // Always update the role in database based on current login method
+      await setDoc(userDocRef, { 
+        ...data, 
+        role: shouldBeAdmin ? 'admin' : 'member',
+        lastLogin: serverTimestamp(),
+        loginCount: (data.loginCount || 0) + 1
+      }, { merge: true });
+      
+      userData.role = shouldBeAdmin ? 'admin' : 'member';
       
       return userData;
     } catch (error: any) {
@@ -164,6 +175,17 @@ export class AuthService {
       
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       const userDocSnap = await getDoc(userDocRef);
+      
+      // ✅ Check if existing user is active
+      if (userDocSnap.exists()) {
+        const existingData = userDocSnap.data();
+        const isActive = existingData.isActive !== undefined ? existingData.isActive : true;
+        
+        if (!isActive) {
+          await firebaseSignOut(auth);
+          throw new Error('Account has been deactivated. Please contact an administrator.');
+        }
+      }
       
       const userDoc = {
         id: firebaseUser.uid,
@@ -217,17 +239,8 @@ export class AuthService {
               isActive: data.isActive !== undefined ? data.isActive : true, // ✅ DEFAULT TO ACTIVE
             } as User);
           } else {
-            resolve({
-              id: firebaseUser.uid,
-              name: firebaseUser.displayName || '',
-              email: firebaseUser.email || '',
-              avatar: firebaseUser.photoURL || '',
-              role: 'member' as const,
-              createdAt: new Date(),
-              lastLogin: new Date(),
-              isActive: true, // ✅ ALWAYS ACTIVE BY DEFAULT
-              loginCount: 1
-            });
+            // User exists in Firebase Auth but not in database
+            resolve(null);
           }
         } else {
           resolve(null);
@@ -342,7 +355,7 @@ export class AuthService {
   // Delete user (admin only)
   async deleteUser(userId: string): Promise<void> {
     try {
-      // Delete user document from Firestore
+      // ✅ ENHANCED: Delete user document from Firestore
       await deleteDoc(doc(db, 'users', userId));
       
       // Note: Deleting from Firebase Auth requires the user to be currently signed in
