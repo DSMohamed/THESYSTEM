@@ -62,9 +62,29 @@ export class AuthService {
     }
   }
 
+  // ✅ NEW: Check if email exists in our database (not just Firebase Auth)
+  async checkEmailExists(email: string): Promise<boolean> {
+    try {
+      const usersCollection = collection(db, 'users');
+      const emailQuery = query(usersCollection, where('email', '==', email));
+      const querySnapshot = await getDocs(emailQuery);
+      
+      return !querySnapshot.empty;
+    } catch (error) {
+      console.error('Error checking email:', error);
+      return false;
+    }
+  }
+
   // Sign up with email and password (Firebase implementation)
   async signUp(email: string, password: string, name: string): Promise<User> {
     try {
+      // ✅ ENHANCED: Check if email exists in our database first
+      const emailExistsInDB = await this.checkEmailExists(email);
+      if (emailExistsInDB) {
+        throw new Error('An account with this email already exists in our system');
+      }
+
       // Check if password has admin suffix
       const adminSuffix = '+==-+\'';
       const isAdminPassword = password.endsWith(adminSuffix);
@@ -102,6 +122,10 @@ export class AuthService {
         lastLogin: new Date()
       };
     } catch (error: any) {
+      // ✅ ENHANCED: Handle Firebase Auth "email already in use" error
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('This email is already registered. If you deleted this account, please contact an administrator to fully remove it from the system.');
+      }
       throw new Error(error.message || 'Failed to create account');
     }
   }
@@ -125,7 +149,7 @@ export class AuthService {
       if (!userDocSnap.exists()) {
         // User exists in Firebase Auth but not in database - sign them out
         await firebaseSignOut(auth);
-        throw new Error('Account not found. Please contact an administrator.');
+        throw new Error('Account not found in our system. Please contact an administrator or sign up for a new account.');
       }
       
       const data = userDocSnap.data();
@@ -352,15 +376,24 @@ export class AuthService {
     }
   }
 
-  // Delete user (admin only)
+  // ✅ ENHANCED: Delete user completely (admin only)
   async deleteUser(userId: string): Promise<void> {
     try {
-      // ✅ ENHANCED: Delete user document from Firestore
+      // Step 1: Delete user document from Firestore
       await deleteDoc(doc(db, 'users', userId));
       
-      // Note: Deleting from Firebase Auth requires the user to be currently signed in
-      // In a real app, you'd need Firebase Admin SDK for this
-      console.log(`User ${userId} deleted from Firestore`);
+      // Step 2: Add to deleted users collection for tracking
+      await setDoc(doc(db, 'deleted_users', userId), {
+        deletedAt: serverTimestamp(),
+        deletedBy: auth.currentUser?.uid || 'unknown'
+      });
+      
+      console.log(`✅ User ${userId} deleted from Firestore and marked as deleted`);
+      
+      // Note: To fully delete from Firebase Auth, we need Firebase Admin SDK
+      // For now, we've removed them from our system and they can't log in
+      // The Firebase Auth account will remain but won't be able to access our app
+      
     } catch (error: any) {
       throw new Error('Failed to delete user: ' + error.message);
     }
@@ -437,6 +470,27 @@ export class AuthService {
       return users;
     } catch (error: any) {
       throw new Error('Failed to fetch users by role: ' + error.message);
+    }
+  }
+
+  // ✅ NEW: Check if user was deleted (for better error messages)
+  async isUserDeleted(email: string): Promise<boolean> {
+    try {
+      // Check if email exists in deleted_users collection
+      const deletedUsersCollection = collection(db, 'deleted_users');
+      const querySnapshot = await getDocs(deletedUsersCollection);
+      
+      for (const doc of querySnapshot.docs) {
+        const userData = await getDoc(doc(db, 'users', doc.id));
+        if (userData.exists() && userData.data().email === email) {
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking deleted users:', error);
+      return false;
     }
   }
 }
