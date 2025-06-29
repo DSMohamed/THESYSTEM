@@ -81,9 +81,22 @@ export class AuthService {
     }
   }
 
-  // ✅ NEW: Clean up deleted user data to allow re-registration
+  // ✅ FIXED: Clean up deleted user data with proper permission handling
   async cleanupDeletedUser(email: string): Promise<void> {
     try {
+      // Only attempt cleanup if user is authenticated and has admin privileges
+      if (!auth.currentUser) {
+        console.log('Skipping cleanup - no authenticated user');
+        return;
+      }
+
+      // Check if current user has admin privileges by checking their document
+      const currentUserDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      if (!currentUserDoc.exists() || currentUserDoc.data().role !== 'admin') {
+        console.log('Skipping cleanup - insufficient privileges');
+        return;
+      }
+
       // Find and remove any deleted user records with this email
       const deletedUsersCollection = collection(db, 'deleted_users');
       const querySnapshot = await getDocs(deletedUsersCollection);
@@ -104,8 +117,14 @@ export class AuthService {
           await deleteDoc(doc(db, 'deleted_users', docSnapshot.id));
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Handle permission errors gracefully - don't throw, just log
+      if (error.code === 'permission-denied' || error.message?.includes('insufficient permissions')) {
+        console.log('Cleanup skipped due to insufficient permissions - this is normal for non-admin users');
+        return;
+      }
       console.error('Error cleaning up deleted user:', error);
+      // Don't throw the error - allow the signup process to continue
     }
   }
 
@@ -128,7 +147,7 @@ export class AuthService {
         // Determine role based on password suffix or email
         const isAdmin = isAdminPassword || (firebaseUser.email || email) === 'therealone639@gmail.com';
         
-        // ✅ Clean up any old deleted user records
+        // ✅ Clean up any old deleted user records (with proper error handling)
         await this.cleanupDeletedUser(email);
         
         // Create user document in Firestore - ALL ACCOUNTS ACTIVE BY DEFAULT
@@ -159,7 +178,7 @@ export class AuthService {
           // This means Firebase Auth has the account but our database might not
           // This happens when a user was deleted from our database but not from Firebase Auth
           
-          // Clean up any deleted user records
+          // Clean up any deleted user records (with proper error handling)
           await this.cleanupDeletedUser(email);
           
           // Try to sign in to get the Firebase user, then update their data
@@ -298,7 +317,7 @@ export class AuthService {
           throw new Error('Account has been deactivated. Please contact an administrator.');
         }
       } else {
-        // ✅ Clean up any old deleted user records for new Google sign-ins
+        // ✅ Clean up any old deleted user records for new Google sign-ins (with proper error handling)
         await this.cleanupDeletedUser(firebaseUser.email || '');
       }
       
@@ -576,9 +595,20 @@ export class AuthService {
     }
   }
 
-  // ✅ NEW: Check if user was deleted (for better error messages)
+  // ✅ FIXED: Check if user was deleted with proper permission handling
   async isUserDeleted(email: string): Promise<boolean> {
     try {
+      // Only attempt if user is authenticated and has admin privileges
+      if (!auth.currentUser) {
+        return false;
+      }
+
+      // Check if current user has admin privileges
+      const currentUserDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      if (!currentUserDoc.exists() || currentUserDoc.data().role !== 'admin') {
+        return false;
+      }
+
       // Check if email exists in deleted_users collection
       const deletedUsersCollection = collection(db, 'deleted_users');
       const querySnapshot = await getDocs(deletedUsersCollection);
@@ -591,7 +621,12 @@ export class AuthService {
       }
       
       return false;
-    } catch (error) {
+    } catch (error: any) {
+      // Handle permission errors gracefully
+      if (error.code === 'permission-denied' || error.message?.includes('insufficient permissions')) {
+        console.log('Cannot check deleted users due to insufficient permissions');
+        return false;
+      }
       console.error('Error checking deleted users:', error);
       return false;
     }
