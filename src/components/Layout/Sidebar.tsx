@@ -13,10 +13,10 @@ const navigation = [
 ];
 
 interface SidebarProps {
-  onClose?: () => void;
+  onNavigate?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -35,48 +35,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     return user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150';
   };
 
-  // Navigation handler
-  const handleNavClick = (href: string) => {
-    console.log('Sidebar: Navigation clicked, navigating to:', href);
+  // Handle navigation
+  const handleNavigation = (href: string) => {
     navigate(href);
-    // Close sidebar on mobile after navigation
-    if (onClose) {
-      console.log('Sidebar: Calling onClose after navigation');
-      setTimeout(() => onClose(), 100); // Small delay to ensure navigation completes
+    // Close mobile menu after navigation
+    if (onNavigate) {
+      setTimeout(() => onNavigate(), 50);
     }
   };
 
-  // Settings handler
-  const handleSettingsClick = () => {
-    console.log('Sidebar: Settings clicked');
+  // Handle settings
+  const handleSettings = () => {
     navigate('/settings');
-    if (onClose) {
-      console.log('Sidebar: Calling onClose after settings');
-      setTimeout(() => onClose(), 100);
+    if (onNavigate) {
+      setTimeout(() => onNavigate(), 50);
     }
   };
 
-  // Logout handler
-  const handleLogoutClick = async () => {
-    console.log('Sidebar: Logout clicked');
+  // Handle logout
+  const handleLogout = async () => {
     try {
       await signOut();
-      if (onClose) {
-        console.log('Sidebar: Calling onClose after logout');
-        onClose();
+      if (onNavigate) {
+        onNavigate();
       }
     } catch (error) {
       console.error('Logout error:', error);
-    }
-  };
-
-  // Close button handler
-  const handleCloseClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Sidebar: Close button clicked');
-    if (onClose) {
-      onClose();
     }
   };
 
@@ -100,16 +84,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         {/* Mobile Close Button */}
         <div className="lg:hidden">
           <button
-            type="button"
-            onClick={handleCloseClick}
+            onClick={onNavigate}
             className="cyber-btn p-2 rounded-lg hover:neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-purple-900/30 border border-cyan-400/50"
             aria-label="Close sidebar"
-            style={{ 
-              zIndex: 9999,
-              position: 'relative',
-              minWidth: '40px',
-              minHeight: '40px'
-            }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -145,7 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           return (
             <button
               key={item.name}
-              onClick={() => handleNavClick(item.href)}
+              onClick={() => handleNavigation(item.href)}
               className={`group flex items-center w-full px-3 lg:px-4 py-3 text-sm font-rajdhani font-medium rounded-lg transition-all duration-300 relative overflow-hidden text-left ${
                 isActive
                   ? 'cyber-card neon-border text-cyan-400 neon-glow'
@@ -174,7 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       {/* Bottom Actions */}
       <div className="p-2 lg:p-4 border-t border-purple-500/30 space-y-1 lg:space-y-2 relative z-10">
         <button
-          onClick={handleSettingsClick}
+          onClick={handleSettings}
           className="w-full flex items-center px-3 lg:px-4 py-3 text-sm font-rajdhani font-medium text-gray-300 rounded-lg hover:text-cyan-400 hover:bg-purple-900/20 transition-all duration-300 text-left"
         >
           <Settings className="mr-3 h-4 lg:h-5 w-4 lg:w-5 text-gray-400" />
@@ -182,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           <span className="text-xs text-purple-400 ml-auto font-rajdhani hidden lg:inline" dir="rtl">الإعدادات</span>
         </button>
         <button
-          onClick={handleLogoutClick}
+          onClick={handleLogout}
           className="w-full flex items-center px-3 lg:px-4 py-3 text-sm font-rajdhani font-medium text-red-400 rounded-lg hover:text-red-300 hover:bg-red-900/20 transition-all duration-300 text-left"
         >
           <LogOut className="mr-3 h-4 lg:h-5 w-4 lg:w-5 text-red-500" />
