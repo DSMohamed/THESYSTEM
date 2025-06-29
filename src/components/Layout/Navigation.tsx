@@ -85,14 +85,16 @@ export const Navigation: React.FC<NavigationProps> = ({ isOpen, onClose, onToggl
 
   return (
     <>
-      {/* Mobile Menu Button - Only show on mobile */}
-      <button
-        onClick={onToggle}
-        className="lg:hidden fixed top-4 left-4 z-[100] cyber-btn p-3 rounded-lg neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-purple-900/90 border border-cyan-400/50 backdrop-blur-md"
-        aria-label={isOpen ? 'Close menu' : 'Open menu'}
-      >
-        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-      </button>
+      {/* Mobile Menu Button - Only show on mobile when navigation is closed */}
+      {!isOpen && (
+        <button
+          onClick={onToggle}
+          className="lg:hidden fixed top-4 left-4 z-[100] cyber-btn p-3 rounded-lg neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-purple-900/90 border border-cyan-400/50 backdrop-blur-md"
+          aria-label="Open menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Mobile Overlay - Only show on mobile when open */}
       {isOpen && (
@@ -107,12 +109,12 @@ export const Navigation: React.FC<NavigationProps> = ({ isOpen, onClose, onToggl
       <div className={`
         /* Desktop: always visible, full height */
         lg:relative lg:translate-x-0 lg:w-full lg:h-full lg:block
-        /* Mobile: fixed overlay with transform - HIDDEN BY DEFAULT */
+        /* Mobile: fixed overlay - COMPLETELY HIDDEN BY DEFAULT */
         fixed lg:static top-0 left-0 h-full w-80 z-50
         transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        /* Ensure proper display states */
-        ${isOpen ? 'block' : 'hidden lg:block'}
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        /* Ensure proper display states - NEVER show on mobile unless open */
+        ${isOpen ? 'block' : 'hidden'} lg:block
       `}>
         <div className="h-full cyber-card border-r-2 neon-border-purple bg-gray-900/95 backdrop-blur-md flex flex-col">
           {/* Animated border effect */}
@@ -131,14 +133,16 @@ export const Navigation: React.FC<NavigationProps> = ({ isOpen, onClose, onToggl
                 </div>
               </div>
               
-              {/* Mobile Close Button - Only show on mobile */}
-              <button
-                onClick={onClose}
-                className="lg:hidden cyber-btn p-2 rounded-lg hover:neon-glow transition-all duration-300 text-cyan-400 hover:text-white"
-                aria-label="Close navigation"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              {/* Single Close Button - Only show on mobile when open */}
+              {isOpen && (
+                <button
+                  onClick={onClose}
+                  className="lg:hidden cyber-btn p-2 rounded-lg hover:neon-glow transition-all duration-300 text-cyan-400 hover:text-white"
+                  aria-label="Close navigation"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
             </div>
           </div>
 
