@@ -51,8 +51,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
       <div className="absolute inset-0 holographic opacity-10"></div>
       
       <div className="flex items-center justify-between relative z-10">
-        {/* Left side - Welcome text with proper spacing for mobile menu */}
-        <div className="flex items-center space-x-3 lg:space-x-6 flex-1 min-w-0 pl-16 lg:pl-0">
+        {/* Left side - Welcome text */}
+        <div className="flex items-center space-x-3 lg:space-x-6 flex-1 min-w-0">
           <div className="min-w-0 flex-1">
             <h2 className="text-sm sm:text-base lg:text-xl font-orbitron font-bold cyber-text-glow truncate">
               WELCOME, {user?.name?.split(' ')[0]?.toUpperCase()}

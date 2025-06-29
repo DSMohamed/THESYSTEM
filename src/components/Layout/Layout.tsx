@@ -63,15 +63,26 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         ))}
       </div>
 
-      {/* Navigation */}
-      <Navigation 
-        isOpen={isNavOpen} 
-        onClose={() => setIsNavOpen(false)}
-        onToggle={() => setIsNavOpen(!isNavOpen)}
-      />
+      {/* Desktop Navigation - Always visible on desktop */}
+      <div className="hidden lg:block w-72 flex-shrink-0">
+        <Navigation 
+          isOpen={true} 
+          onClose={() => {}}
+          onToggle={() => {}}
+        />
+      </div>
+
+      {/* Mobile Navigation - Overlay on mobile */}
+      <div className="lg:hidden">
+        <Navigation 
+          isOpen={isNavOpen} 
+          onClose={() => setIsNavOpen(false)}
+          onToggle={() => setIsNavOpen(!isNavOpen)}
+        />
+      </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10 min-w-0">
         <Header onMenuToggle={() => setIsNavOpen(!isNavOpen)} />
         <main className="flex-1 overflow-y-auto cyber-grid">
           <div className="p-3 sm:p-4 lg:p-6">

@@ -76,7 +76,7 @@ export const Navigation: React.FC<NavigationProps> = ({ isOpen, onClose, onToggl
 
   return (
     <>
-      {/* Mobile Menu Button - Fixed Position */}
+      {/* Mobile Menu Button - Only show on mobile */}
       <button
         onClick={onToggle}
         className="lg:hidden fixed top-4 left-4 z-[100] cyber-btn p-3 rounded-lg neon-glow transition-all duration-300 text-cyan-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-purple-900/90 border border-cyan-400/50 backdrop-blur-md"
@@ -85,7 +85,7 @@ export const Navigation: React.FC<NavigationProps> = ({ isOpen, onClose, onToggl
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay - Only show on mobile when open */}
       {isOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-40"
@@ -95,7 +95,11 @@ export const Navigation: React.FC<NavigationProps> = ({ isOpen, onClose, onToggl
 
       {/* Navigation Panel */}
       <div className={`
-        fixed lg:relative top-0 left-0 h-full w-80 lg:w-72 z-50
+        ${/* Mobile positioning */}
+        lg:relative lg:translate-x-0 lg:w-full lg:h-full
+        ${/* Mobile: fixed overlay */}
+        fixed lg:static top-0 left-0 h-full w-80 z-50
+        ${/* Mobile transform */}
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
@@ -116,7 +120,7 @@ export const Navigation: React.FC<NavigationProps> = ({ isOpen, onClose, onToggl
                 </div>
               </div>
               
-              {/* Mobile Close Button */}
+              {/* Mobile Close Button - Only show on mobile */}
               <button
                 onClick={onClose}
                 className="lg:hidden cyber-btn p-2 rounded-lg hover:neon-glow transition-all duration-300 text-cyan-400 hover:text-white"
