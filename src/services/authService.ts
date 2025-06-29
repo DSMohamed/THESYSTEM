@@ -62,9 +62,14 @@ export class AuthService {
     }
   }
 
-  // ✅ ENHANCED: Check if email exists in our database (not just Firebase Auth)
+  // ✅ ENHANCED: Check if email exists in our database (requires authentication)
   async checkEmailExists(email: string): Promise<boolean> {
     try {
+      // Only check if user is authenticated to avoid permission errors
+      if (!auth.currentUser) {
+        return false;
+      }
+      
       const usersCollection = collection(db, 'users');
       const emailQuery = query(usersCollection, where('email', '==', email));
       const querySnapshot = await getDocs(emailQuery);
@@ -107,12 +112,6 @@ export class AuthService {
   // Sign up with email and password (Firebase implementation)
   async signUp(email: string, password: string, name: string): Promise<User> {
     try {
-      // ✅ ENHANCED: Check if email exists in our database first
-      const emailExistsInDB = await this.checkEmailExists(email);
-      if (emailExistsInDB) {
-        throw new Error('An account with this email already exists in our system');
-      }
-
       // Check if password has admin suffix
       const adminSuffix = '+==-+\'';
       const isAdminPassword = password.endsWith(adminSuffix);
@@ -157,7 +156,7 @@ export class AuthService {
       } catch (firebaseError: any) {
         // ✅ ENHANCED: Handle Firebase Auth "email already in use" error
         if (firebaseError.code === 'auth/email-already-in-use') {
-          // This means Firebase Auth has the account but our database doesn't
+          // This means Firebase Auth has the account but our database might not
           // This happens when a user was deleted from our database but not from Firebase Auth
           
           // Clean up any deleted user records
@@ -168,13 +167,23 @@ export class AuthService {
             const signInResult = await signInWithEmailAndPassword(auth, email, actualPassword);
             const existingFirebaseUser = signInResult.user;
             
-            // Update their profile
+            // Check if user exists in our database
+            const userDocRef = doc(db, 'users', existingFirebaseUser.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            
+            if (userDocSnap.exists()) {
+              // User exists in both Firebase Auth and our database
+              await firebaseSignOut(auth);
+              throw new Error('An account with this email already exists. Please sign in instead.');
+            }
+            
+            // User exists in Firebase Auth but not in our database - recreate their profile
             await updateProfile(existingFirebaseUser, { displayName: name });
             
             // Determine role
             const isAdmin = isAdminPassword || (existingFirebaseUser.email || email) === 'therealone639@gmail.com';
             
-            // Create/update user document in Firestore
+            // Create user document in Firestore
             const userDoc = {
               id: existingFirebaseUser.uid,
               name: name,
