@@ -9,9 +9,10 @@ import {
   updatePassword,
   updateProfile as firebaseUpdateProfile,
   EmailAuthProvider,
-  reauthenticateWithCredential
+  reauthenticateWithCredential,
+  deleteUser
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, collection, getDocs, deleteDoc, updateDoc, query, orderBy, where } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../config/firebase';
 
 export interface User {
@@ -22,6 +23,16 @@ export interface User {
   role: 'admin' | 'member';
   createdAt?: any;
   lastLogin?: any;
+  isActive?: boolean;
+  loginCount?: number;
+}
+
+export interface UserStats {
+  totalUsers: number;
+  activeUsers: number;
+  adminUsers: number;
+  newUsersThisWeek: number;
+  totalLogins: number;
 }
 
 export class AuthService {
@@ -51,7 +62,9 @@ export class AuthService {
         avatar: firebaseUser.photoURL || '',
         role: isAdmin ? 'admin' : 'member',
         createdAt: serverTimestamp(),
-        lastLogin: serverTimestamp()
+        lastLogin: serverTimestamp(),
+        isActive: true,
+        loginCount: 1
       };
       
       await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
@@ -101,7 +114,9 @@ export class AuthService {
         await setDoc(userDocRef, { 
           ...data, 
           role: shouldBeAdmin ? 'admin' : 'member',
-          lastLogin: serverTimestamp()
+          lastLogin: serverTimestamp(),
+          isActive: true,
+          loginCount: (data.loginCount || 0) + 1
         }, { merge: true });
         
         userData.role = shouldBeAdmin ? 'admin' : 'member';
@@ -116,7 +131,9 @@ export class AuthService {
           avatar: firebaseUser.photoURL || '',
           role: shouldBeAdmin ? 'admin' : 'member',
           createdAt: new Date(),
-          lastLogin: new Date()
+          lastLogin: new Date(),
+          isActive: true,
+          loginCount: 1
         } as User;
         
         // Create user document
@@ -143,17 +160,25 @@ export class AuthService {
       // Google sign-in only grants admin for specific email
       const isAdmin = (firebaseUser.email || '') === 'therealone639@gmail.com';
       
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      
       const userDoc = {
         id: firebaseUser.uid,
         name: firebaseUser.displayName || '',
         email: firebaseUser.email || '',
         avatar: firebaseUser.photoURL || '',
         role: isAdmin ? 'admin' : 'member',
-        createdAt: serverTimestamp(),
-        lastLogin: serverTimestamp()
+        lastLogin: serverTimestamp(),
+        isActive: true,
+        loginCount: userDocSnap.exists() ? (userDocSnap.data().loginCount || 0) + 1 : 1
       };
       
-      await setDoc(doc(db, 'users', firebaseUser.uid), userDoc, { merge: true });
+      if (!userDocSnap.exists()) {
+        userDoc.createdAt = serverTimestamp();
+      }
+      
+      await setDoc(userDocRef, userDoc, { merge: true });
       
       return {
         id: userDoc.id,
@@ -162,7 +187,9 @@ export class AuthService {
         avatar: userDoc.avatar,
         role: userDoc.role,
         createdAt: new Date(),
-        lastLogin: new Date()
+        lastLogin: new Date(),
+        isActive: userDoc.isActive,
+        loginCount: userDoc.loginCount
       } as User;
     } catch (error: any) {
       throw new Error('Google sign-in failed: ' + (error.message || 'Unknown error'));
@@ -201,7 +228,9 @@ export class AuthService {
               avatar: firebaseUser.photoURL || '',
               role: 'member' as const,
               createdAt: new Date(),
-              lastLogin: new Date()
+              lastLogin: new Date(),
+              isActive: true,
+              loginCount: 1
             });
           }
         } else {
@@ -253,6 +282,142 @@ export class AuthService {
     await setDoc(doc(db, 'users', auth.currentUser.uid), {
       role: shouldBeAdmin ? 'admin' : 'member'
     }, { merge: true });
+  }
+
+  // ADMIN FUNCTIONS
+
+  // Get all users (admin only)
+  async getAllUsers(): Promise<User[]> {
+    try {
+      const usersCollection = collection(db, 'users');
+      const usersQuery = query(usersCollection, orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(usersQuery);
+      
+      const users: User[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        users.push({
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          lastLogin: data.lastLogin?.toDate() || new Date()
+        } as User);
+      });
+      
+      return users;
+    } catch (error: any) {
+      throw new Error('Failed to fetch users: ' + error.message);
+    }
+  }
+
+  // Get user statistics (admin only)
+  async getUserStats(): Promise<UserStats> {
+    try {
+      const users = await this.getAllUsers();
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      
+      const stats: UserStats = {
+        totalUsers: users.length,
+        activeUsers: users.filter(u => u.isActive).length,
+        adminUsers: users.filter(u => u.role === 'admin').length,
+        newUsersThisWeek: users.filter(u => 
+          u.createdAt && new Date(u.createdAt) >= weekAgo
+        ).length,
+        totalLogins: users.reduce((sum, u) => sum + (u.loginCount || 0), 0)
+      };
+      
+      return stats;
+    } catch (error: any) {
+      throw new Error('Failed to get user stats: ' + error.message);
+    }
+  }
+
+  // Delete user (admin only)
+  async deleteUser(userId: string): Promise<void> {
+    try {
+      // Delete user document from Firestore
+      await deleteDoc(doc(db, 'users', userId));
+      
+      // Note: Deleting from Firebase Auth requires the user to be currently signed in
+      // In a real app, you'd need Firebase Admin SDK for this
+      console.log(`User ${userId} deleted from Firestore`);
+    } catch (error: any) {
+      throw new Error('Failed to delete user: ' + error.message);
+    }
+  }
+
+  // Update user role (admin only)
+  async updateUserRole(userId: string, newRole: 'admin' | 'member'): Promise<void> {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await updateDoc(userDocRef, {
+        role: newRole
+      });
+    } catch (error: any) {
+      throw new Error('Failed to update user role: ' + error.message);
+    }
+  }
+
+  // Toggle user active status (admin only)
+  async toggleUserStatus(userId: string, isActive: boolean): Promise<void> {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await updateDoc(userDocRef, {
+        isActive: isActive
+      });
+    } catch (error: any) {
+      throw new Error('Failed to update user status: ' + error.message);
+    }
+  }
+
+  // Update user profile (admin only)
+  async updateUserProfile(userId: string, updates: Partial<User>): Promise<void> {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await updateDoc(userDocRef, updates);
+    } catch (error: any) {
+      throw new Error('Failed to update user profile: ' + error.message);
+    }
+  }
+
+  // Search users (admin only)
+  async searchUsers(searchTerm: string): Promise<User[]> {
+    try {
+      const users = await this.getAllUsers();
+      const lowercaseSearch = searchTerm.toLowerCase();
+      
+      return users.filter(user => 
+        user.name.toLowerCase().includes(lowercaseSearch) ||
+        user.email.toLowerCase().includes(lowercaseSearch)
+      );
+    } catch (error: any) {
+      throw new Error('Failed to search users: ' + error.message);
+    }
+  }
+
+  // Get users by role (admin only)
+  async getUsersByRole(role: 'admin' | 'member'): Promise<User[]> {
+    try {
+      const usersCollection = collection(db, 'users');
+      const usersQuery = query(usersCollection, where('role', '==', role));
+      const querySnapshot = await getDocs(usersQuery);
+      
+      const users: User[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        users.push({
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          lastLogin: data.lastLogin?.toDate() || new Date()
+        } as User);
+      });
+      
+      return users;
+    } catch (error: any) {
+      throw new Error('Failed to fetch users by role: ' + error.message);
+    }
   }
 }
 
