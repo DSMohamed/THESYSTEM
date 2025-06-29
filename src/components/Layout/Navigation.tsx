@@ -95,11 +95,11 @@ export const Navigation: React.FC<NavigationProps> = ({ isOpen, onClose, onToggl
 
       {/* Navigation Panel */}
       <div className={`
-        ${/* Mobile positioning */}
+        /* Mobile positioning */
         lg:relative lg:translate-x-0 lg:w-full lg:h-full
-        ${/* Mobile: fixed overlay */}
+        /* Mobile: fixed overlay */
         fixed lg:static top-0 left-0 h-full w-80 z-50
-        ${/* Mobile transform */}
+        /* Mobile transform */
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
