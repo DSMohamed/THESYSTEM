@@ -8,7 +8,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  // FIXED: Start with sidebar closed by default on all screen sizes
+  // Start with sidebar closed by default
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Close sidebar when screen size changes to desktop
@@ -48,20 +48,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
   }, [sidebarOpen]);
 
-  // DIRECT close function - no parameters
+  // Force close sidebar function
   const closeSidebar = () => {
+    console.log('Layout: Closing sidebar');
     setSidebarOpen(false);
   };
 
-  // DIRECT toggle function
+  // Toggle sidebar function
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    console.log('Layout: Toggling sidebar, current state:', sidebarOpen);
+    setSidebarOpen(prev => !prev);
   };
 
-  // DIRECT overlay click handler
+  // Overlay click handler
   const handleOverlayClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('Layout: Overlay clicked, closing sidebar');
     setSidebarOpen(false);
   };
 
@@ -87,17 +90,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div
           className="lg:hidden fixed inset-0 bg-black bg-opacity-75 z-40"
           onClick={handleOverlayClick}
-          onTouchStart={handleOverlayClick}
+          onTouchEnd={handleOverlayClick}
         />
       )}
 
-      {/* Sidebar - Hidden by default on mobile, always visible on desktop */}
+      {/* Sidebar Container */}
       <div className={`
         fixed lg:relative transition-transform duration-300 ease-in-out z-50
         w-64 flex-shrink-0 h-full
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
+        <Sidebar onClose={closeSidebar} />
       </div>
 
       {/* Main Content */}
