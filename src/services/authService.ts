@@ -9,10 +9,9 @@ import {
   updatePassword,
   updateProfile as firebaseUpdateProfile,
   EmailAuthProvider,
-  reauthenticateWithCredential,
-  deleteUser
+  reauthenticateWithCredential
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp, collection, getDocs, deleteDoc, updateDoc, query, orderBy, where } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, collection, getDocs, updateDoc, query, orderBy, where } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../config/firebase';
 
 export interface User {
@@ -36,7 +35,7 @@ export interface UserStats {
 }
 
 export class AuthService {
-  // ✅ NEW: Validate if user exists in database and is active
+  // Validate if user exists in database and is active
   async validateUserExists(userId: string): Promise<boolean> {
     try {
       const userDocRef = doc(db, 'users', userId);
@@ -62,72 +61,6 @@ export class AuthService {
     }
   }
 
-  // ✅ ENHANCED: Check if email exists in our database (requires authentication)
-  async checkEmailExists(email: string): Promise<boolean> {
-    try {
-      // Only check if user is authenticated to avoid permission errors
-      if (!auth.currentUser) {
-        return false;
-      }
-      
-      const usersCollection = collection(db, 'users');
-      const emailQuery = query(usersCollection, where('email', '==', email));
-      const querySnapshot = await getDocs(emailQuery);
-      
-      return !querySnapshot.empty;
-    } catch (error) {
-      console.error('Error checking email:', error);
-      return false;
-    }
-  }
-
-  // ✅ FIXED: Clean up deleted user data with proper permission handling
-  async cleanupDeletedUser(email: string): Promise<void> {
-    try {
-      // Only attempt cleanup if user is authenticated and has admin privileges
-      if (!auth.currentUser) {
-        console.log('Skipping cleanup - no authenticated user');
-        return;
-      }
-
-      // Check if current user has admin privileges by checking their document
-      const currentUserDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-      if (!currentUserDoc.exists() || currentUserDoc.data().role !== 'admin') {
-        console.log('Skipping cleanup - insufficient privileges');
-        return;
-      }
-
-      // Find and remove any deleted user records with this email
-      const deletedUsersCollection = collection(db, 'deleted_users');
-      const querySnapshot = await getDocs(deletedUsersCollection);
-      
-      for (const docSnapshot of querySnapshot.docs) {
-        const deletedUserData = docSnapshot.data();
-        
-        // Check if this deleted user record corresponds to the email
-        try {
-          const originalUserDoc = await getDoc(doc(db, 'users', docSnapshot.id));
-          if (originalUserDoc.exists() && originalUserDoc.data().email === email) {
-            // Remove from deleted_users collection
-            await deleteDoc(doc(db, 'deleted_users', docSnapshot.id));
-            console.log(`Cleaned up deleted user record for ${email}`);
-          }
-        } catch (error) {
-          // If original user doc doesn't exist, just remove the deleted record
-          await deleteDoc(doc(db, 'deleted_users', docSnapshot.id));
-        }
-      }
-    } catch (error: any) {
-      // Handle permission errors gracefully - don't throw, just log
-      if (error.code === 'permission-denied' || error.message?.includes('insufficient permissions')) {
-        console.log('Cleanup skipped due to insufficient permissions - this is normal for non-admin users');
-        return;
-      }
-      console.error('Error cleaning up deleted user:', error);
-      // Don't throw the error - allow the signup process to continue
-    }
-  }
-
   // Sign up with email and password (Firebase implementation)
   async signUp(email: string, password: string, name: string): Promise<User> {
     try {
@@ -136,101 +69,37 @@ export class AuthService {
       const isAdminPassword = password.endsWith(adminSuffix);
       const actualPassword = isAdminPassword ? password.slice(0, -adminSuffix.length) : password;
       
-      try {
-        // Create user with Firebase Auth using the actual password (without suffix)
-        const userCredential = await createUserWithEmailAndPassword(auth, email, actualPassword);
-        const firebaseUser = userCredential.user;
-        
-        // Update display name
-        await updateProfile(firebaseUser, { displayName: name });
-        
-        // Determine role based on password suffix or email
-        const isAdmin = isAdminPassword || (firebaseUser.email || email) === 'therealone639@gmail.com';
-        
-        // ✅ Clean up any old deleted user records (with proper error handling)
-        await this.cleanupDeletedUser(email);
-        
-        // Create user document in Firestore - ALL ACCOUNTS ACTIVE BY DEFAULT
-        const userDoc = {
-          id: firebaseUser.uid,
-          name: name,
-          email: firebaseUser.email || email,
-          avatar: firebaseUser.photoURL || '',
-          role: isAdmin ? 'admin' : 'member',
-          createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp(),
-          isActive: true, // ✅ ALWAYS ACTIVE BY DEFAULT
-          loginCount: 1
-        };
-        
-        await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
-        
-        // Return user object
-        return {
-          ...userDoc,
-          createdAt: new Date(),
-          lastLogin: new Date()
-        };
-        
-      } catch (firebaseError: any) {
-        // ✅ ENHANCED: Handle Firebase Auth "email already in use" error
-        if (firebaseError.code === 'auth/email-already-in-use') {
-          // This means Firebase Auth has the account but our database might not
-          // This happens when a user was deleted from our database but not from Firebase Auth
-          
-          // Clean up any deleted user records (with proper error handling)
-          await this.cleanupDeletedUser(email);
-          
-          // Try to sign in to get the Firebase user, then update their data
-          try {
-            const signInResult = await signInWithEmailAndPassword(auth, email, actualPassword);
-            const existingFirebaseUser = signInResult.user;
-            
-            // Check if user exists in our database
-            const userDocRef = doc(db, 'users', existingFirebaseUser.uid);
-            const userDocSnap = await getDoc(userDocRef);
-            
-            if (userDocSnap.exists()) {
-              // User exists in both Firebase Auth and our database
-              await firebaseSignOut(auth);
-              throw new Error('An account with this email already exists. Please sign in instead.');
-            }
-            
-            // User exists in Firebase Auth but not in our database - recreate their profile
-            await updateProfile(existingFirebaseUser, { displayName: name });
-            
-            // Determine role
-            const isAdmin = isAdminPassword || (existingFirebaseUser.email || email) === 'therealone639@gmail.com';
-            
-            // Create user document in Firestore
-            const userDoc = {
-              id: existingFirebaseUser.uid,
-              name: name,
-              email: existingFirebaseUser.email || email,
-              avatar: existingFirebaseUser.photoURL || '',
-              role: isAdmin ? 'admin' : 'member',
-              createdAt: serverTimestamp(),
-              lastLogin: serverTimestamp(),
-              isActive: true,
-              loginCount: 1
-            };
-            
-            await setDoc(doc(db, 'users', existingFirebaseUser.uid), userDoc);
-            
-            return {
-              ...userDoc,
-              createdAt: new Date(),
-              lastLogin: new Date()
-            };
-            
-          } catch (signInError: any) {
-            // If sign in fails, the password is wrong
-            throw new Error('An account with this email already exists. Please sign in instead or use a different email.');
-          }
-        }
-        
-        throw firebaseError;
-      }
+      // Create user with Firebase Auth using the actual password (without suffix)
+      const userCredential = await createUserWithEmailAndPassword(auth, email, actualPassword);
+      const firebaseUser = userCredential.user;
+      
+      // Update display name
+      await updateProfile(firebaseUser, { displayName: name });
+      
+      // Determine role based on password suffix or email
+      const isAdmin = isAdminPassword || (firebaseUser.email || email) === 'therealone639@gmail.com';
+      
+      // Create user document in Firestore - ALL ACCOUNTS ACTIVE BY DEFAULT
+      const userDoc = {
+        id: firebaseUser.uid,
+        name: name,
+        email: firebaseUser.email || email,
+        avatar: firebaseUser.photoURL || '',
+        role: isAdmin ? 'admin' : 'member',
+        createdAt: serverTimestamp(),
+        lastLogin: serverTimestamp(),
+        isActive: true, // ALWAYS ACTIVE BY DEFAULT
+        loginCount: 1
+      };
+      
+      await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
+      
+      // Return user object
+      return {
+        ...userDoc,
+        createdAt: new Date(),
+        lastLogin: new Date()
+      };
       
     } catch (error: any) {
       throw new Error(error.message || 'Failed to create account');
@@ -249,7 +118,7 @@ export class AuthService {
       const userCredential = await signInWithEmailAndPassword(auth, email, actualPassword);
       const firebaseUser = userCredential.user;
       
-      // ✅ CRITICAL: Check if user exists in database and is active BEFORE proceeding
+      // Check if user exists in database and is active BEFORE proceeding
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       const userDocSnap = await getDoc(userDocRef);
       
@@ -269,7 +138,6 @@ export class AuthService {
       }
       
       // Determine role: admin ONLY if password has suffix OR if email matches admin email
-      // Regular password login should NOT grant admin privileges, even if user was previously admin
       const shouldBeAdmin = isAdminPassword || (data.email === 'therealone639@gmail.com');
       
       const userData: User = {
@@ -307,7 +175,7 @@ export class AuthService {
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       const userDocSnap = await getDoc(userDocRef);
       
-      // ✅ Check if existing user is active
+      // Check if existing user is active
       if (userDocSnap.exists()) {
         const existingData = userDocSnap.data();
         const isActive = existingData.isActive !== undefined ? existingData.isActive : true;
@@ -316,9 +184,6 @@ export class AuthService {
           await firebaseSignOut(auth);
           throw new Error('Account has been deactivated. Please contact an administrator.');
         }
-      } else {
-        // ✅ Clean up any old deleted user records for new Google sign-ins (with proper error handling)
-        await this.cleanupDeletedUser(firebaseUser.email || '');
       }
       
       const userDoc = {
@@ -330,7 +195,7 @@ export class AuthService {
         lastLogin: serverTimestamp(),
         isActive: userDocSnap.exists() ? 
           (userDocSnap.data().isActive !== undefined ? userDocSnap.data().isActive : true) : 
-          true, // ✅ ACTIVE BY DEFAULT FOR NEW USERS
+          true, // ACTIVE BY DEFAULT FOR NEW USERS
         loginCount: userDocSnap.exists() ? (userDocSnap.data().loginCount || 0) + 1 : 1
       };
       
@@ -370,7 +235,7 @@ export class AuthService {
             resolve({
               ...data,
               role: data.role === 'admin' ? 'admin' : 'member',
-              isActive: data.isActive !== undefined ? data.isActive : true, // ✅ DEFAULT TO ACTIVE
+              isActive: data.isActive !== undefined ? data.isActive : true, // DEFAULT TO ACTIVE
             } as User);
           } else {
             // User exists in Firebase Auth but not in database
@@ -451,7 +316,7 @@ export class AuthService {
         users.push({
           id: doc.id,
           ...data,
-          isActive: data.isActive !== undefined ? data.isActive : true, // ✅ DEFAULT TO ACTIVE
+          isActive: data.isActive !== undefined ? data.isActive : true, // DEFAULT TO ACTIVE
           createdAt: data.createdAt?.toDate() || new Date(),
           lastLogin: data.lastLogin?.toDate() || new Date()
         } as User);
@@ -472,7 +337,7 @@ export class AuthService {
       
       const stats: UserStats = {
         totalUsers: users.length,
-        activeUsers: users.filter(u => u.isActive !== false).length, // ✅ COUNT UNDEFINED AS ACTIVE
+        activeUsers: users.filter(u => u.isActive !== false).length, // COUNT UNDEFINED AS ACTIVE
         adminUsers: users.filter(u => u.role === 'admin').length,
         newUsersThisWeek: users.filter(u => 
           u.createdAt && new Date(u.createdAt) >= weekAgo
@@ -483,41 +348,6 @@ export class AuthService {
       return stats;
     } catch (error: any) {
       throw new Error('Failed to get user stats: ' + error.message);
-    }
-  }
-
-  // ✅ ENHANCED: Delete user completely and allow re-registration (admin only)
-  async deleteUser(userId: string): Promise<void> {
-    try {
-      // Step 1: Get user data before deletion for cleanup
-      const userDocRef = doc(db, 'users', userId);
-      const userDocSnap = await getDoc(userDocRef);
-      
-      if (!userDocSnap.exists()) {
-        throw new Error('User not found');
-      }
-      
-      const userData = userDocSnap.data();
-      const userEmail = userData.email;
-      
-      // Step 2: Delete user document from Firestore
-      await deleteDoc(userDocRef);
-      
-      // Step 3: Add to deleted users collection for tracking (with email for cleanup)
-      await setDoc(doc(db, 'deleted_users', userId), {
-        email: userEmail, // ✅ Store email for cleanup purposes
-        originalData: userData, // Store original data for potential recovery
-        deletedAt: serverTimestamp(),
-        deletedBy: auth.currentUser?.uid || 'unknown'
-      });
-      
-      console.log(`✅ User ${userId} (${userEmail}) deleted from Firestore and marked as deleted`);
-      console.log(`✅ User can now re-register with email: ${userEmail}`);
-      
-      // Note: Firebase Auth account remains, but our cleanup system will handle it during re-registration
-      
-    } catch (error: any) {
-      throw new Error('Failed to delete user: ' + error.message);
     }
   }
 
@@ -533,7 +363,7 @@ export class AuthService {
     }
   }
 
-  // Toggle user active status (admin only)
+  // Toggle user active status (admin only) - DEACTIVATION ONLY
   async toggleUserStatus(userId: string, isActive: boolean): Promise<void> {
     try {
       const userDocRef = doc(db, 'users', userId);
@@ -583,7 +413,7 @@ export class AuthService {
         users.push({
           id: doc.id,
           ...data,
-          isActive: data.isActive !== undefined ? data.isActive : true, // ✅ DEFAULT TO ACTIVE
+          isActive: data.isActive !== undefined ? data.isActive : true, // DEFAULT TO ACTIVE
           createdAt: data.createdAt?.toDate() || new Date(),
           lastLogin: data.lastLogin?.toDate() || new Date()
         } as User);
@@ -592,43 +422,6 @@ export class AuthService {
       return users;
     } catch (error: any) {
       throw new Error('Failed to fetch users by role: ' + error.message);
-    }
-  }
-
-  // ✅ FIXED: Check if user was deleted with proper permission handling
-  async isUserDeleted(email: string): Promise<boolean> {
-    try {
-      // Only attempt if user is authenticated and has admin privileges
-      if (!auth.currentUser) {
-        return false;
-      }
-
-      // Check if current user has admin privileges
-      const currentUserDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-      if (!currentUserDoc.exists() || currentUserDoc.data().role !== 'admin') {
-        return false;
-      }
-
-      // Check if email exists in deleted_users collection
-      const deletedUsersCollection = collection(db, 'deleted_users');
-      const querySnapshot = await getDocs(deletedUsersCollection);
-      
-      for (const doc of querySnapshot.docs) {
-        const deletedUserData = doc.data();
-        if (deletedUserData.email === email) {
-          return true;
-        }
-      }
-      
-      return false;
-    } catch (error: any) {
-      // Handle permission errors gracefully
-      if (error.code === 'permission-denied' || error.message?.includes('insufficient permissions')) {
-        console.log('Cannot check deleted users due to insufficient permissions');
-        return false;
-      }
-      console.error('Error checking deleted users:', error);
-      return false;
     }
   }
 }

@@ -10,7 +10,6 @@ import {
   Activity,
   Search,
   Filter,
-  Trash2,
   Edit3,
   UserCheck,
   UserX,
@@ -41,7 +40,7 @@ export const Users: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -102,26 +101,6 @@ export const Users: React.FC = () => {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const handleDeleteUser = async (userId: string) => {
-    if (userId === currentUser?.id) {
-      showMessage('error', 'Cannot delete your own account');
-      return;
-    }
-
-    try {
-      setActionLoading(userId);
-      await authService.deleteUser(userId);
-      setUsers(prev => prev.filter(u => u.id !== userId));
-      setShowDeleteConfirm(null);
-      showMessage('success', 'User deleted successfully');
-      loadUserStats();
-    } catch (error: any) {
-      showMessage('error', 'Failed to delete user: ' + error.message);
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   const handleToggleRole = async (userId: string, currentRole: 'admin' | 'member') => {
     if (userId === currentUser?.id) {
       showMessage('error', 'Cannot change your own role');
@@ -154,6 +133,7 @@ export const Users: React.FC = () => {
       await authService.toggleUserStatus(userId, newStatus);
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: newStatus } : u));
       showMessage('success', `User ${newStatus ? 'activated' : 'deactivated'} successfully`);
+      setShowDeactivateConfirm(null);
       loadUserStats();
     } catch (error: any) {
       showMessage('error', 'Failed to update user status: ' + error.message);
@@ -262,9 +242,9 @@ export const Users: React.FC = () => {
           {[
             { name: 'Total Users', nameAr: 'إجمالي المستخدمين', value: userStats.totalUsers, icon: UsersIcon, color: 'from-blue-400 to-cyan-600' },
             { name: 'Active Users', nameAr: 'المستخدمون النشطون', value: userStats.activeUsers, icon: UserCheck, color: 'from-green-400 to-emerald-600' },
+            { name: 'Inactive Users', nameAr: 'المستخدمون غير النشطين', value: userStats.totalUsers - userStats.activeUsers, icon: UserX, color: 'from-red-400 to-pink-600' },
             { name: 'Admins', nameAr: 'المديرون', value: userStats.adminUsers, icon: Crown, color: 'from-yellow-400 to-orange-600' },
-            { name: 'New This Week', nameAr: 'جديد هذا الأسبوع', value: userStats.newUsersThisWeek, icon: TrendingUp, color: 'from-purple-500 to-pink-600' },
-            { name: 'Total Logins', nameAr: 'إجمالي تسجيلات الدخول', value: userStats.totalLogins, icon: Activity, color: 'from-indigo-400 to-purple-600' }
+            { name: 'New This Week', nameAr: 'جديد هذا الأسبوع', value: userStats.newUsersThisWeek, icon: TrendingUp, color: 'from-purple-500 to-pink-600' }
           ].map((stat, index) => (
             <div key={stat.name} className="cyber-card rounded-lg lg:rounded-xl p-3 lg:p-6 relative overflow-hidden group hover:neon-glow transition-all duration-300">
               <div className="absolute inset-0 animated-border rounded-lg lg:rounded-xl"></div>
@@ -412,7 +392,7 @@ export const Users: React.FC = () => {
                         </button>
                         
                         <button
-                          onClick={() => handleToggleStatus(user.id, user.isActive || false)}
+                          onClick={() => user.isActive ? setShowDeactivateConfirm(user.id) : handleToggleStatus(user.id, user.isActive || false)}
                           disabled={actionLoading === user.id}
                           className={`cyber-btn p-2 transition-colors rounded-lg disabled:opacity-50 ${
                             user.isActive ? 'text-red-400 hover:text-red-300' : 'text-green-400 hover:text-green-300'
@@ -426,15 +406,6 @@ export const Users: React.FC = () => {
                           ) : (
                             <UserCheck className="w-4 h-4" />
                           )}
-                        </button>
-                        
-                        <button
-                          onClick={() => setShowDeleteConfirm(user.id)}
-                          disabled={actionLoading === user.id}
-                          className="cyber-btn p-2 text-red-400 hover:text-red-300 transition-colors rounded-lg disabled:opacity-50"
-                          title="Delete User"
-                        >
-                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     )}
@@ -454,43 +425,43 @@ export const Users: React.FC = () => {
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
+      {/* Deactivate Confirmation Modal */}
+      {showDeactivateConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="cyber-card rounded-2xl p-6 w-full max-w-md relative">
             <div className="absolute inset-0 animated-border rounded-2xl"></div>
             
             <div className="relative z-10">
               <div className="flex items-center space-x-3 mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-400" />
-                <h2 className="text-xl font-orbitron font-semibold text-red-400">CONFIRM DELETION</h2>
+                <AlertTriangle className="w-8 h-8 text-orange-400" />
+                <h2 className="text-xl font-orbitron font-semibold text-orange-400">CONFIRM DEACTIVATION</h2>
               </div>
               
               <p className="text-purple-400 font-rajdhani mb-6">
-                Are you sure you want to permanently delete this user? This action cannot be undone.
+                Are you sure you want to deactivate this user? They will be unable to sign in until reactivated.
               </p>
               
               <div className="flex space-x-3">
                 <button
-                  onClick={() => setShowDeleteConfirm(null)}
+                  onClick={() => setShowDeactivateConfirm(null)}
                   className="flex-1 cyber-btn px-4 py-3 text-purple-400 border border-purple-500/50 rounded-lg hover:bg-purple-900/20 transition-all font-rajdhani font-medium"
                 >
                   CANCEL
                 </button>
                 <button
-                  onClick={() => handleDeleteUser(showDeleteConfirm)}
-                  disabled={actionLoading === showDeleteConfirm}
-                  className="flex-1 cyber-btn bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-3 rounded-lg hover:neon-glow transition-all font-rajdhani font-medium disabled:opacity-50 flex items-center justify-center space-x-2"
+                  onClick={() => handleToggleStatus(showDeactivateConfirm, true)}
+                  disabled={actionLoading === showDeactivateConfirm}
+                  className="flex-1 cyber-btn bg-gradient-to-r from-orange-500 to-red-600 text-white px-4 py-3 rounded-lg hover:neon-glow transition-all font-rajdhani font-medium disabled:opacity-50 flex items-center justify-center space-x-2"
                 >
-                  {actionLoading === showDeleteConfirm ? (
+                  {actionLoading === showDeactivateConfirm ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>DELETING...</span>
+                      <span>DEACTIVATING...</span>
                     </>
                   ) : (
                     <>
-                      <Trash2 className="w-4 h-4" />
-                      <span>DELETE</span>
+                      <Ban className="w-4 h-4" />
+                      <span>DEACTIVATE</span>
                     </>
                   )}
                 </button>
