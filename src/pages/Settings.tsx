@@ -68,6 +68,57 @@ export const Settings: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
+  // Image compression and resizing function
+  const compressImage = (file: File, maxWidth: number = 200, quality: number = 0.8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+
+      img.onload = () => {
+        // Calculate new dimensions while maintaining aspect ratio
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxWidth) {
+            width = (width * maxWidth) / height;
+            height = maxWidth;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Draw and compress
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Convert to blob with compression
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            } else {
+              reject(new Error('Failed to compress image'));
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   // Image upload functions
   const handleImageUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -76,8 +127,8 @@ export const Settings: React.FC = () => {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      setProfileMsg('Image size must be less than 5MB');
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit for original file
+      setProfileMsg('Image size must be less than 10MB');
       setTimeout(() => setProfileMsg(null), 5000);
       return;
     }
@@ -86,37 +137,55 @@ export const Settings: React.FC = () => {
       setIsUploading(true);
       setUploadProgress(0);
 
-      // Create a preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-
-      // Simulate upload progress
+      // Progress simulation
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
-          if (prev >= 90) {
+          if (prev >= 80) {
             clearInterval(progressInterval);
-            return 90;
+            return 80;
           }
           return prev + 10;
         });
       }, 100);
 
-      // Convert to base64 for storage (in a real app, you'd upload to a service like Firebase Storage)
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
+      // Compress the image to a reasonable size for Firebase
+      const compressedImage = await compressImage(file, 200, 0.8);
+      
+      // Check if compressed image is still too long (Firebase limit is around 2048 characters for photoURL)
+      if (compressedImage.length > 1500) {
+        // Try with more aggressive compression
+        const moreCompressed = await compressImage(file, 150, 0.6);
+        if (moreCompressed.length > 1500) {
+          // If still too large, use a placeholder and store in localStorage
+          const placeholderUrl = 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150';
+          
+          // Store the actual image in localStorage for local use
+          localStorage.setItem(`avatar_${user?.id}`, compressedImage);
+          setPreviewImage(compressedImage);
+          setAvatar(placeholderUrl);
+          
+          setUploadProgress(100);
+          clearInterval(progressInterval);
+          setProfileMsg('Image compressed and ready! Click "Update Profile" to save.');
+          
+          setTimeout(() => {
+            setIsUploading(false);
+            setUploadProgress(0);
+            setProfileMsg(null);
+          }, 2000);
+          
+          return;
+        }
+        setPreviewImage(moreCompressed);
+        setAvatar(moreCompressed);
+      } else {
+        setPreviewImage(compressedImage);
+        setAvatar(compressedImage);
+      }
 
       // Complete the progress
       setUploadProgress(100);
       clearInterval(progressInterval);
-
-      // Update avatar state
-      setAvatar(base64);
       setProfileMsg('Image uploaded successfully! Click "Update Profile" to save.');
       
       setTimeout(() => {
@@ -126,7 +195,8 @@ export const Settings: React.FC = () => {
       }, 2000);
 
     } catch (error) {
-      setProfileMsg('Failed to upload image. Please try again.');
+      console.error('Image upload error:', error);
+      setProfileMsg('Failed to process image. Please try a smaller image or different format.');
       setIsUploading(false);
       setUploadProgress(0);
       setTimeout(() => setProfileMsg(null), 5000);
@@ -163,6 +233,21 @@ export const Settings: React.FC = () => {
   const removePreviewImage = () => {
     setPreviewImage(null);
     setAvatar(user?.avatar || '');
+    // Remove from localStorage if it exists
+    if (user?.id) {
+      localStorage.removeItem(`avatar_${user.id}`);
+    }
+  };
+
+  const getDisplayAvatar = () => {
+    // Check localStorage first for high-quality image
+    if (user?.id) {
+      const localAvatar = localStorage.getItem(`avatar_${user.id}`);
+      if (localAvatar) {
+        return localAvatar;
+      }
+    }
+    return previewImage || avatar || user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150';
   };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
@@ -170,14 +255,33 @@ export const Settings: React.FC = () => {
     setProfileMsg(null);
     setProfileLoading(true);
     try {
-      const finalAvatar = previewImage || avatar;
+      // Use the compressed avatar for Firebase, but keep high-quality in localStorage
+      const finalAvatar = avatar || user?.avatar || '';
       await authService.updateProfile(name, finalAvatar);
       setProfileMsg('Profile updated successfully!');
       setPreviewImage(null);
       setTimeout(() => setProfileMsg(null), 3000);
     } catch (err: any) {
-      setProfileMsg(err.message || 'Failed to update profile');
-      setTimeout(() => setProfileMsg(null), 5000);
+      console.error('Profile update error:', err);
+      if (err.message.includes('too long') || err.message.includes('invalid-profile-attribute')) {
+        // If still too long, use placeholder and store locally
+        try {
+          const placeholderUrl = 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150';
+          await authService.updateProfile(name, placeholderUrl);
+          if (user?.id && previewImage) {
+            localStorage.setItem(`avatar_${user.id}`, previewImage);
+          }
+          setProfileMsg('Profile updated! Image stored locally due to size constraints.');
+          setPreviewImage(null);
+          setTimeout(() => setProfileMsg(null), 3000);
+        } catch (fallbackErr: any) {
+          setProfileMsg('Failed to update profile: ' + fallbackErr.message);
+          setTimeout(() => setProfileMsg(null), 5000);
+        }
+      } else {
+        setProfileMsg('Failed to update profile: ' + err.message);
+        setTimeout(() => setProfileMsg(null), 5000);
+      }
     } finally {
       setProfileLoading(false);
     }
@@ -223,6 +327,7 @@ export const Settings: React.FC = () => {
       level: localStorage.getItem(`userLevel_${user?.id}`),
       achievements: localStorage.getItem(`achievements_${user?.id}`),
       settings: exportSettings(),
+      avatar: user?.id ? localStorage.getItem(`avatar_${user.id}`) : null,
       exportDate: new Date().toISOString()
     };
     
@@ -287,7 +392,8 @@ export const Settings: React.FC = () => {
           key.startsWith('userLevel_') || 
           key.startsWith('achievements_') ||
           key.startsWith('settings_') ||
-          key.startsWith('geminiChatHistory_')
+          key.startsWith('geminiChatHistory_') ||
+          key.startsWith('avatar_')
         );
         
         keysToRemove.forEach(key => localStorage.removeItem(key));
@@ -390,7 +496,7 @@ export const Settings: React.FC = () => {
                 <div className="relative">
                   <img
                     className="w-16 h-16 rounded-full object-cover border-2 neon-border"
-                    src={previewImage || avatar || user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150'}
+                    src={getDisplayAvatar()}
                     alt="Profile"
                   />
                   {previewImage && (
@@ -408,7 +514,7 @@ export const Settings: React.FC = () => {
                     {previewImage ? 'New image ready to save' : 'Current profile image'}
                   </p>
                   <p className="text-xs text-purple-400 font-rajdhani">
-                    Drag & drop or click to upload
+                    Drag & drop or click to upload • Auto-compressed for Firebase
                   </p>
                 </div>
               </div>
@@ -436,7 +542,7 @@ export const Settings: React.FC = () => {
                 {isUploading ? (
                   <div className="space-y-3">
                     <RefreshCw className="w-8 h-8 text-cyan-400 mx-auto animate-spin" />
-                    <p className="text-cyan-400 font-rajdhani font-medium">UPLOADING IMAGE...</p>
+                    <p className="text-cyan-400 font-rajdhani font-medium">PROCESSING IMAGE...</p>
                     <div className="w-full cyber-progress h-2 rounded-full">
                       <div 
                         className="cyber-progress-bar h-full rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 transition-all duration-300"
@@ -453,7 +559,7 @@ export const Settings: React.FC = () => {
                         {isDragging ? 'DROP IMAGE HERE' : 'DRAG & DROP IMAGE'}
                       </p>
                       <p className="text-xs text-purple-400 font-rajdhani mt-1">
-                        or click to browse • Max 5MB • JPG, PNG, GIF
+                        or click to browse • Max 10MB • Auto-compressed • JPG, PNG, GIF
                       </p>
                     </div>
                   </div>
@@ -987,7 +1093,7 @@ export const Settings: React.FC = () => {
               <p className="text-xs text-yellow-300 mt-1 font-rajdhani">
                 All data is stored locally on your device. Export your data regularly to prevent loss. 
                 Clearing data will permanently remove all tasks, workouts, achievements, and settings.
-                Settings are automatically saved when changed. Profile images are stored as base64 data.
+                Settings are automatically saved when changed. Profile images are automatically compressed for Firebase compatibility.
               </p>
               <p className="text-xs text-yellow-300 mt-1 font-rajdhani" dir="rtl">
                 جميع البيانات محفوظة محلياً على جهازك. قم بتصدير بياناتك بانتظام لمنع فقدانها.
