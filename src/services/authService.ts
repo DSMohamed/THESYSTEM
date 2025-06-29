@@ -54,7 +54,7 @@ export class AuthService {
       // Determine role based on password suffix or email
       const isAdmin = isAdminPassword || (firebaseUser.email || email) === 'therealone639@gmail.com';
       
-      // Create user document in Firestore
+      // Create user document in Firestore - ALL ACCOUNTS ACTIVE BY DEFAULT
       const userDoc = {
         id: firebaseUser.uid,
         name: name,
@@ -63,7 +63,7 @@ export class AuthService {
         role: isAdmin ? 'admin' : 'member',
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
-        isActive: true,
+        isActive: true, // ✅ ALWAYS ACTIVE BY DEFAULT
         loginCount: 1
       };
       
@@ -111,15 +111,17 @@ export class AuthService {
         } as User;
         
         // Always update the role in database based on current login method
+        // Keep account active by default, or preserve existing status
         await setDoc(userDocRef, { 
           ...data, 
           role: shouldBeAdmin ? 'admin' : 'member',
           lastLogin: serverTimestamp(),
-          isActive: true,
+          isActive: data.isActive !== undefined ? data.isActive : true, // ✅ DEFAULT TO ACTIVE IF NOT SET
           loginCount: (data.loginCount || 0) + 1
         }, { merge: true });
         
         userData.role = shouldBeAdmin ? 'admin' : 'member';
+        userData.isActive = data.isActive !== undefined ? data.isActive : true;
       } else {
         // Fallback if user doc doesn't exist
         const shouldBeAdmin = isAdminPassword || (firebaseUser.email === 'therealone639@gmail.com');
@@ -132,7 +134,7 @@ export class AuthService {
           role: shouldBeAdmin ? 'admin' : 'member',
           createdAt: new Date(),
           lastLogin: new Date(),
-          isActive: true,
+          isActive: true, // ✅ ALWAYS ACTIVE BY DEFAULT
           loginCount: 1
         } as User;
         
@@ -170,7 +172,9 @@ export class AuthService {
         avatar: firebaseUser.photoURL || '',
         role: isAdmin ? 'admin' : 'member',
         lastLogin: serverTimestamp(),
-        isActive: true,
+        isActive: userDocSnap.exists() ? 
+          (userDocSnap.data().isActive !== undefined ? userDocSnap.data().isActive : true) : 
+          true, // ✅ ACTIVE BY DEFAULT FOR NEW USERS
         loginCount: userDocSnap.exists() ? (userDocSnap.data().loginCount || 0) + 1 : 1
       };
       
@@ -196,15 +200,6 @@ export class AuthService {
     }
   }
 
-  // Sign out (Firebase implementation)
-  async signOut(): Promise<void> {
-    try {
-      await firebaseSignOut(auth);
-    } catch (error: any) {
-      throw new Error('Failed to sign out: ' + (error.message || 'Unknown error'));
-    }
-  }
-
   // Get current user data using Firebase Auth
   async getCurrentUserData(): Promise<User | null> {
     return new Promise((resolve) => {
@@ -219,6 +214,7 @@ export class AuthService {
             resolve({
               ...data,
               role: data.role === 'admin' ? 'admin' : 'member',
+              isActive: data.isActive !== undefined ? data.isActive : true, // ✅ DEFAULT TO ACTIVE
             } as User);
           } else {
             resolve({
@@ -229,7 +225,7 @@ export class AuthService {
               role: 'member' as const,
               createdAt: new Date(),
               lastLogin: new Date(),
-              isActive: true,
+              isActive: true, // ✅ ALWAYS ACTIVE BY DEFAULT
               loginCount: 1
             });
           }
@@ -238,6 +234,15 @@ export class AuthService {
         }
       });
     });
+  }
+
+  // Sign out (Firebase implementation)
+  async signOut(): Promise<void> {
+    try {
+      await firebaseSignOut(auth);
+    } catch (error: any) {
+      throw new Error('Failed to sign out: ' + (error.message || 'Unknown error'));
+    }
   }
 
   // Check if user is authenticated
@@ -299,6 +304,7 @@ export class AuthService {
         users.push({
           id: doc.id,
           ...data,
+          isActive: data.isActive !== undefined ? data.isActive : true, // ✅ DEFAULT TO ACTIVE
           createdAt: data.createdAt?.toDate() || new Date(),
           lastLogin: data.lastLogin?.toDate() || new Date()
         } as User);
@@ -319,7 +325,7 @@ export class AuthService {
       
       const stats: UserStats = {
         totalUsers: users.length,
-        activeUsers: users.filter(u => u.isActive).length,
+        activeUsers: users.filter(u => u.isActive !== false).length, // ✅ COUNT UNDEFINED AS ACTIVE
         adminUsers: users.filter(u => u.role === 'admin').length,
         newUsersThisWeek: users.filter(u => 
           u.createdAt && new Date(u.createdAt) >= weekAgo
@@ -409,6 +415,7 @@ export class AuthService {
         users.push({
           id: doc.id,
           ...data,
+          isActive: data.isActive !== undefined ? data.isActive : true, // ✅ DEFAULT TO ACTIVE
           createdAt: data.createdAt?.toDate() || new Date(),
           lastLogin: data.lastLogin?.toDate() || new Date()
         } as User);
