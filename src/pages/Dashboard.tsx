@@ -1,14 +1,16 @@
 import React from 'react';
-import { CheckCircle2, Clock, TrendingUp, Calendar, Dumbbell, BookOpen, Users, Zap, Activity, Target, Award, Star } from 'lucide-react';
+import { CheckCircle2, Clock, TrendingUp, Calendar, Dumbbell, BookOpen, Users, Zap, Activity, Target, Award, Star, Flame, Calendar as CalendarIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTask } from '../contexts/TaskContext';
 import { useLevel } from '../contexts/LevelContext';
+import { useStreak } from '../contexts/StreakContext';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { getUserTasks, getUserWorkouts } = useTask();
   const { userLevel, achievements, getLevelProgress, getRecentActivity } = useLevel();
+  const { streakData, getActivityCalendar } = useStreak();
   const navigate = useNavigate();
 
   const userTasks = getUserTasks(user?.id || '');
@@ -20,6 +22,19 @@ export const Dashboard: React.FC = () => {
   const levelProgress = getLevelProgress();
   const recentActivity = getRecentActivity();
   const unlockedAchievements = achievements.filter(a => a.unlocked);
+
+  // Get streak information
+  const currentStreak = streakData.currentStreak;
+  const longestStreak = streakData.longestStreak;
+  const totalActiveDays = streakData.totalActiveDays;
+
+  // Calculate this week's workouts
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const thisWeekWorkouts = userWorkouts.filter(w => {
+    const workoutDate = new Date(w.date);
+    return workoutDate >= weekAgo;
+  }).length;
 
   const stats = [
     {
@@ -35,7 +50,7 @@ export const Dashboard: React.FC = () => {
     {
       name: 'Workouts This Week',
       nameAr: 'التمارين هذا الأسبوع',
-      value: userWorkouts.length.toString(),
+      value: thisWeekWorkouts.toString(),
       change: '+2 from last week',
       changeType: 'positive',
       icon: Dumbbell,
@@ -45,12 +60,12 @@ export const Dashboard: React.FC = () => {
     {
       name: 'Active Streak',
       nameAr: 'الإنجاز المتتالي',
-      value: '7 days',
-      change: 'Keep it up!',
+      value: `${currentStreak} days`,
+      change: `Best: ${longestStreak} days`,
       changeType: 'positive',
-      icon: TrendingUp,
-      color: 'from-green-400 to-emerald-600',
-      glowColor: 'rgba(34, 197, 94, 0.3)'
+      icon: Flame,
+      color: 'from-orange-400 to-red-600',
+      glowColor: 'rgba(251, 146, 60, 0.3)'
     },
     {
       name: 'System Level',
@@ -86,6 +101,21 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  // Get recent streak activities
+  const getRecentStreakActivities = () => {
+    const recent = streakData.streakHistory
+      .slice(-7) // Last 7 days
+      .reverse() // Most recent first
+      .map(entry => ({
+        date: entry.date,
+        activities: entry.activities,
+        dayName: new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' })
+      }));
+    return recent;
+  };
+
+  const recentStreakActivities = getRecentStreakActivities();
+
   return (
     <div className="space-y-4 lg:space-y-8">
       {/* Welcome Section with Level Info */}
@@ -102,7 +132,7 @@ export const Dashboard: React.FC = () => {
               USER: {user?.name?.toUpperCase()} • STATUS: ACTIVE • LEVEL: {userLevel.level}
             </p>
             <p className="text-purple-400 font-rajdhani text-sm lg:text-base mb-2">
-              RANK: {userLevel.title.toUpperCase()} • XP: {userLevel.totalXP}
+              RANK: {userLevel.title.toUpperCase()} • XP: {userLevel.totalXP} • STREAK: {currentStreak} DAYS
             </p>
             <div className="w-full lg:w-96 cyber-progress h-2 lg:h-3 rounded-full mb-2">
               <div 
@@ -115,7 +145,7 @@ export const Dashboard: React.FC = () => {
             </p>
             <div className="mt-3 lg:mt-6" dir="rtl">
               <h2 className="text-lg lg:text-xl font-rajdhani font-semibold text-cyan-400">مرحباً بعودتك، {user?.name?.split(' ')[0]}</h2>
-              <p className="text-purple-400 font-rajdhani text-sm lg:text-base">المستوى {userLevel.level} • {userLevel.titleAr}</p>
+              <p className="text-purple-400 font-rajdhani text-sm lg:text-base">المستوى {userLevel.level} • {userLevel.titleAr} • الإنجاز المتتالي: {currentStreak} أيام</p>
             </div>
           </div>
           <div className="hidden lg:block">
@@ -124,6 +154,11 @@ export const Dashboard: React.FC = () => {
               <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-600 rounded-full flex items-center justify-center text-xs font-orbitron font-bold text-white">
                 {userLevel.level}
               </div>
+              {currentStreak > 0 && (
+                <div className="absolute -bottom-2 -left-2 w-8 h-8 bg-gradient-to-r from-orange-400 to-red-600 rounded-full flex items-center justify-center text-xs font-orbitron font-bold text-white">
+                  <Flame className="w-4 h-4" />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -214,27 +249,54 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Recent Activity */}
+        {/* Streak Activity */}
         <div className="cyber-card rounded-lg lg:rounded-xl p-4 lg:p-6 relative">
           <div className="absolute inset-0 animated-border rounded-lg lg:rounded-xl"></div>
           
           <div className="flex items-center justify-between mb-4 lg:mb-6 relative z-10">
-            <h3 className="text-base lg:text-lg font-orbitron font-semibold text-cyan-400 neon-text">XP ACTIVITY</h3>
-            <span className="text-xs lg:text-sm text-purple-400 font-rajdhani" dir="rtl">نشاط النقاط</span>
+            <h3 className="text-base lg:text-lg font-orbitron font-semibold text-cyan-400 neon-text">STREAK ACTIVITY</h3>
+            <span className="text-xs lg:text-sm text-purple-400 font-rajdhani" dir="rtl">نشاط الإنجاز</span>
           </div>
-          <div className="space-y-2 lg:space-y-3 relative z-10">
-            {recentActivity.slice(0, 6).map((activity, index) => (
-              <div key={index} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-purple-900/20 transition-all duration-300">
-                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                <p className="text-xs font-rajdhani text-cyan-400 flex-1">
-                  {activity}
-                </p>
+          
+          {/* Streak Stats */}
+          <div className="grid grid-cols-3 gap-2 mb-4 relative z-10">
+            <div className="text-center p-2 cyber-card rounded-lg bg-orange-900/20 border border-orange-500/30">
+              <div className="text-lg font-orbitron font-bold text-orange-400">{currentStreak}</div>
+              <div className="text-xs text-orange-300 font-rajdhani">CURRENT</div>
+            </div>
+            <div className="text-center p-2 cyber-card rounded-lg bg-red-900/20 border border-red-500/30">
+              <div className="text-lg font-orbitron font-bold text-red-400">{longestStreak}</div>
+              <div className="text-xs text-red-300 font-rajdhani">BEST</div>
+            </div>
+            <div className="text-center p-2 cyber-card rounded-lg bg-purple-900/20 border border-purple-500/30">
+              <div className="text-lg font-orbitron font-bold text-purple-400">{totalActiveDays}</div>
+              <div className="text-xs text-purple-300 font-rajdhani">TOTAL</div>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="space-y-2 relative z-10">
+            {recentStreakActivities.slice(0, 5).map((activity, index) => (
+              <div key={activity.date} className="flex items-center justify-between p-2 rounded-lg hover:bg-purple-900/20 transition-all duration-300">
+                <div className="flex items-center space-x-2">
+                  <CalendarIcon className="w-3 h-3 text-cyan-400" />
+                  <span className="text-xs font-rajdhani text-cyan-400">{activity.dayName}</span>
+                </div>
+                <div className="flex space-x-1">
+                  {activity.activities.map((activityType, i) => (
+                    <div key={i} className={`w-2 h-2 rounded-full ${
+                      activityType === 'task' ? 'bg-blue-400' :
+                      activityType === 'workout' ? 'bg-green-400' :
+                      activityType === 'journal' ? 'bg-purple-400' : 'bg-gray-400'
+                    }`} />
+                  ))}
+                </div>
               </div>
             ))}
-            {recentActivity.length === 0 && (
+            {recentStreakActivities.length === 0 && (
               <div className="text-center py-4">
-                <Zap className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-xs text-gray-400 font-rajdhani">Complete activities to earn XP</p>
+                <Flame className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-xs text-gray-400 font-rajdhani">Complete activities to build your streak</p>
               </div>
             )}
           </div>

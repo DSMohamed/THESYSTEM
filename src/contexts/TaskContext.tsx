@@ -10,6 +10,7 @@ export interface Task {
   category: 'general' | 'workout' | 'personal';
   dueDate?: string;
   createdAt: string;
+  completedAt?: string;
   userId: string;
 }
 
@@ -55,6 +56,7 @@ const mockTasks: Task[] = [
     category: 'workout',
     dueDate: '2025-01-08',
     createdAt: '2025-01-08T06:00:00Z',
+    completedAt: '2025-01-08T06:30:00Z',
     userId: '1'
   },
   {
@@ -165,6 +167,14 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       // Level context might not be available yet
     }
+
+    // Record streak activity
+    try {
+      const { recordActivity } = require('./StreakContext').useStreak();
+      recordActivity('task', `Created: ${newTask.title}`);
+    } catch (error) {
+      // Streak context might not be available yet
+    }
   };
 
   const updateTask = (id: string, updates: Partial<Task>) => {
@@ -174,11 +184,21 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Award XP for completing a task
         if (!task.completed && updates.completed) {
+          updatedTask.completedAt = new Date().toISOString();
+          
           try {
             const { addXP } = require('./LevelContext').useLevel();
             addXP(10, 'Task Completed');
           } catch (error) {
             // Level context might not be available yet
+          }
+
+          // Record streak activity for task completion
+          try {
+            const { recordActivity } = require('./StreakContext').useStreak();
+            recordActivity('task', `Completed: ${updatedTask.title}`);
+          } catch (error) {
+            // Streak context might not be available yet
           }
         }
         
@@ -205,6 +225,14 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addXP(25, 'Workout Logged');
     } catch (error) {
       // Level context might not be available yet
+    }
+
+    // Record streak activity for workout
+    try {
+      const { recordActivity } = require('./StreakContext').useStreak();
+      recordActivity('workout', `Logged: ${newWorkout.name}`);
+    } catch (error) {
+      // Streak context might not be available yet
     }
   };
 

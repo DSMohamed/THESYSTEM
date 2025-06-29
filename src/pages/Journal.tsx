@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Calendar, Lock, Search, Edit3, Trash2, Save, BookOpen, Zap, Target, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useStreak } from '../contexts/StreakContext';
 
 interface JournalEntry {
   id: string;
@@ -15,33 +16,34 @@ interface JournalEntry {
 
 export const Journal: React.FC = () => {
   const { user } = useAuth();
-  const [entries, setEntries] = useState<JournalEntry[]>([
-    {
-      id: '1',
-      title: 'Great Workout Session',
-      content: 'Had an amazing workout today. Completed all my sets with proper form and felt really strong. The new routine is working well for me. I\'m seeing improvements in my strength and endurance.',
-      date: '2025-01-08',
-      mood: 'great',
-      isPrivate: false,
-      tags: ['workout', 'fitness', 'progress'],
-      userId: '1'
-    },
-    {
-      id: '2',
-      title: 'Personal Reflections',
-      content: 'Today was a day of mixed emotions. I accomplished my main tasks but felt overwhelmed by the workload. Need to work on better time management and setting boundaries.',
-      date: '2025-01-07',
-      mood: 'okay',
-      isPrivate: true,
-      tags: ['personal', 'reflection', 'work'],
-      userId: '1'
-    }
-  ]);
-
+  const { recordActivity } = useStreak();
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMood, setSelectedMood] = useState<'all' | JournalEntry['mood']>('all');
+
+  // Load entries from localStorage on mount
+  useEffect(() => {
+    if (user?.id) {
+      const saved = localStorage.getItem(`journalEntries_${user.id}`);
+      if (saved) {
+        try {
+          setEntries(JSON.parse(saved));
+        } catch (error) {
+          console.error('Error loading journal entries:', error);
+          setEntries([]);
+        }
+      }
+    }
+  }, [user?.id]);
+
+  // Save entries to localStorage whenever entries change
+  useEffect(() => {
+    if (user?.id && entries.length >= 0) {
+      localStorage.setItem(`journalEntries_${user.id}`, JSON.stringify(entries));
+    }
+  }, [entries, user?.id]);
 
   const userEntries = entries.filter(entry => entry.userId === user?.id);
 
@@ -109,6 +111,9 @@ export const Journal: React.FC = () => {
     setEntries(prev => [newEntry, ...prev]);
     setShowAddForm(false);
     e.currentTarget.reset();
+
+    // Record streak activity for journal entry
+    recordActivity('journal', `New entry: ${newEntry.title}`);
   };
 
   const handleUpdateEntry = (id: string, updatedEntry: Partial<JournalEntry>) => {
