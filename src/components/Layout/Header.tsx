@@ -1,8 +1,12 @@
 import React from 'react';
-import { Bell, Search, ChevronDown, Moon, Sun, Wifi, Battery, Signal } from 'lucide-react';
+import { Bell, Search, ChevronDown, Moon, Sun, Wifi, Battery, Signal, Menu } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onMenuToggle?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   const { user, signOut } = useAuth();
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(() => {
@@ -22,9 +26,8 @@ export const Header: React.FC = () => {
     }
   }, [darkMode]);
 
-  // Get the best available avatar (same logic as Settings page)
+  // Get the best available avatar
   const getDisplayAvatar = () => {
-    // Check localStorage first for high-quality image
     if (user?.id) {
       const localAvatar = localStorage.getItem(`avatar_${user.id}`);
       if (localAvatar) {
@@ -48,8 +51,8 @@ export const Header: React.FC = () => {
       <div className="absolute inset-0 holographic opacity-10"></div>
       
       <div className="flex items-center justify-between relative z-10">
-        {/* Left side - Welcome text with mobile padding for menu button */}
-        <div className="flex items-center space-x-3 lg:space-x-6 flex-1 min-w-0 pl-12 lg:pl-0">
+        {/* Left side - Welcome text with proper spacing for mobile menu */}
+        <div className="flex items-center space-x-3 lg:space-x-6 flex-1 min-w-0 pl-16 lg:pl-0">
           <div className="min-w-0 flex-1">
             <h2 className="text-sm sm:text-base lg:text-xl font-orbitron font-bold cyber-text-glow truncate">
               WELCOME, {user?.name?.split(' ')[0]?.toUpperCase()}
