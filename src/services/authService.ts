@@ -88,30 +88,23 @@ export class AuthService {
       if (userDocSnap.exists()) {
         const data = userDocSnap.data();
         
-        // Determine role: admin if password has suffix, or if email matches, or if already admin in database
-        const shouldBeAdmin = isAdminPassword || 
-                             (data.email === 'therealone639@gmail.com') || 
-                             (data.role === 'admin');
+        // Determine role: admin ONLY if password has suffix OR if email matches admin email
+        // Regular password login should NOT grant admin privileges, even if user was previously admin
+        const shouldBeAdmin = isAdminPassword || (data.email === 'therealone639@gmail.com');
         
         userData = {
           ...data,
           role: shouldBeAdmin ? 'admin' : 'member',
         } as User;
         
-        // Update role in database if it changed due to admin password
-        if (isAdminPassword && data.role !== 'admin') {
-          await setDoc(userDocRef, { 
-            ...data, 
-            role: 'admin',
-            lastLogin: serverTimestamp()
-          }, { merge: true });
-          userData.role = 'admin';
-        } else {
-          // Update last login
-          await setDoc(userDocRef, { 
-            lastLogin: serverTimestamp()
-          }, { merge: true });
-        }
+        // Always update the role in database based on current login method
+        await setDoc(userDocRef, { 
+          ...data, 
+          role: shouldBeAdmin ? 'admin' : 'member',
+          lastLogin: serverTimestamp()
+        }, { merge: true });
+        
+        userData.role = shouldBeAdmin ? 'admin' : 'member';
       } else {
         // Fallback if user doc doesn't exist
         const shouldBeAdmin = isAdminPassword || (firebaseUser.email === 'therealone639@gmail.com');
@@ -147,6 +140,7 @@ export class AuthService {
       const firebaseUser = result.user;
       
       // Create or update user document in Firestore
+      // Google sign-in only grants admin for specific email
       const isAdmin = (firebaseUser.email || '') === 'therealone639@gmail.com';
       
       const userDoc = {
@@ -254,12 +248,11 @@ export class AuthService {
     // Update password with actual new password
     await updatePassword(auth.currentUser, actualNewPassword);
     
-    // Update user role in Firestore if admin suffix was used
-    if (isNewPasswordAdmin) {
-      await setDoc(doc(db, 'users', auth.currentUser.uid), {
-        role: 'admin'
-      }, { merge: true });
-    }
+    // Update user role in Firestore based on new password
+    const shouldBeAdmin = isNewPasswordAdmin || (auth.currentUser.email === 'therealone639@gmail.com');
+    await setDoc(doc(db, 'users', auth.currentUser.uid), {
+      role: shouldBeAdmin ? 'admin' : 'member'
+    }, { merge: true });
   }
 }
 
