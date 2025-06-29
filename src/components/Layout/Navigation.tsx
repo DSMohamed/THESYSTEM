@@ -55,20 +55,29 @@ export const Navigation: React.FC<NavigationProps> = ({ isOpen, onClose, onToggl
   // Handle navigation
   const handleNavigate = (href: string) => {
     navigate(href);
-    onClose();
+    // Always close on mobile after navigation
+    if (window.innerWidth < 1024) {
+      onClose();
+    }
   };
 
   // Handle settings
   const handleSettings = () => {
     navigate('/settings');
-    onClose();
+    // Always close on mobile after navigation
+    if (window.innerWidth < 1024) {
+      onClose();
+    }
   };
 
   // Handle logout
   const handleLogout = async () => {
     try {
       await signOut();
-      onClose();
+      // Always close on mobile after logout
+      if (window.innerWidth < 1024) {
+        onClose();
+      }
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -90,18 +99,20 @@ export const Navigation: React.FC<NavigationProps> = ({ isOpen, onClose, onToggl
         <div
           className="lg:hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-40"
           onClick={onClose}
+          onTouchStart={onClose}
         />
       )}
 
       {/* Navigation Panel */}
       <div className={`
-        /* Mobile positioning */
-        lg:relative lg:translate-x-0 lg:w-full lg:h-full
-        /* Mobile: fixed overlay */
+        /* Desktop: always visible, full height */
+        lg:relative lg:translate-x-0 lg:w-full lg:h-full lg:block
+        /* Mobile: fixed overlay with transform */
         fixed lg:static top-0 left-0 h-full w-80 z-50
-        /* Mobile transform */
         transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        /* Hide completely on desktop when not needed */
+        lg:transform-none
       `}>
         <div className="h-full cyber-card border-r-2 neon-border-purple bg-gray-900/95 backdrop-blur-md flex flex-col">
           {/* Animated border effect */}
