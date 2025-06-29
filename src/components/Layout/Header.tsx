@@ -22,6 +22,18 @@ export const Header: React.FC = () => {
     }
   }, [darkMode]);
 
+  // Get the best available avatar (same logic as Settings page)
+  const getDisplayAvatar = () => {
+    // Check localStorage first for high-quality image
+    if (user?.id) {
+      const localAvatar = localStorage.getItem(`avatar_${user.id}`);
+      if (localAvatar) {
+        return localAvatar;
+      }
+    }
+    return user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150';
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -109,7 +121,7 @@ export const Header: React.FC = () => {
               <div className="w-6 lg:w-8 h-6 lg:h-8 rounded-full overflow-hidden border neon-border">
                 <img
                   className="w-full h-full object-cover"
-                  src={user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150'}
+                  src={getDisplayAvatar()}
                   alt={user?.name}
                 />
               </div>
@@ -127,7 +139,7 @@ export const Header: React.FC = () => {
                     <div className="relative">
                       <img
                         className="w-8 h-8 rounded-full object-cover border neon-border"
-                        src={user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150'}
+                        src={getDisplayAvatar()}
                         alt={user?.name}
                       />
                       <div className="absolute -top-1 -right-1 status-indicator"></div>

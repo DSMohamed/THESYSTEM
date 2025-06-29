@@ -25,6 +25,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   // Filter navigation: only show 'Users' for admin
   const filteredNavigation = navigation.filter(item => item.name !== 'Users' || user?.role === 'admin');
 
+  // Get the best available avatar (same logic as Settings page)
+  const getDisplayAvatar = () => {
+    // Check localStorage first for high-quality image
+    if (user?.id) {
+      const localAvatar = localStorage.getItem(`avatar_${user.id}`);
+      if (localAvatar) {
+        return localAvatar;
+      }
+    }
+    return user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150';
+  };
+
   const handleNavClick = (href: string) => {
     // Close sidebar on mobile when navigation item is clicked
     if (onClose) {
@@ -108,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           <div className="relative">
             <img
               className="w-10 lg:w-12 h-10 lg:h-12 rounded-full object-cover border-2 neon-border"
-              src={user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150'}
+              src={getDisplayAvatar()}
               alt={user?.name}
             />
             <div className="absolute -top-1 -right-1 status-indicator"></div>
