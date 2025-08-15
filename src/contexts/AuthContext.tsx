@@ -11,6 +11,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   switchUser: (userId: string) => void;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
   error: string | null;
   clearError: () => void;
 }
@@ -168,6 +169,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
   };
 
+  const sendPasswordResetEmail = async (email: string): Promise<void> => {
+    try {
+      setError(null);
+      await authService.sendPasswordResetEmail(email);
+    } catch (error: any) {
+      setError(error.message);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -179,6 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signInWithGoogle,
       signOut,
       switchUser,
+      sendPasswordResetEmail,
       error,
       clearError
     }}>

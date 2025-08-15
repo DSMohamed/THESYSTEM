@@ -9,7 +9,8 @@ import {
   updatePassword,
   updateProfile as firebaseUpdateProfile,
   EmailAuthProvider,
-  reauthenticateWithCredential
+  reauthenticateWithCredential,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp, collection, getDocs, updateDoc, query, orderBy, where } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../config/firebase';
@@ -299,6 +300,15 @@ export class AuthService {
     await setDoc(doc(db, 'users', auth.currentUser.uid), {
       role: shouldBeAdmin ? 'admin' : 'member'
     }, { merge: true });
+  }
+
+  // Send password reset email
+  async sendPasswordResetEmail(email: string): Promise<void> {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error: any) {
+      throw new Error('Failed to send password reset email: ' + (error.message || 'Unknown error'));
+    }
   }
 
   // ADMIN FUNCTIONS

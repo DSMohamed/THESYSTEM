@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckSquare, Eye, EyeOff, Globe, Mail, User, Chrome, Zap } from 'lucide-react';
+import { CheckSquare, Eye, EyeOff, Globe, Mail, User, Chrome, Zap, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const AuthForm: React.FC = () => {
@@ -9,8 +9,11 @@ export const AuthForm: React.FC = () => {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [language, setLanguage] = useState<'en' | 'ar'>('en');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
   
-  const { signIn, signUp, signInWithGoogle, isLoading, error, clearError } = useAuth();
+  const { signIn, signUp, signInWithGoogle, sendPasswordResetEmail, isLoading, error, clearError } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +37,29 @@ export const AuthForm: React.FC = () => {
     clearError();
     try {
       await signInWithGoogle();
+    } catch (err) {
+      // Error is handled by the context
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(resetEmail);
+      setResetMessage(
+        language === 'ar' 
+          ? 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني'
+          : 'Password reset link sent to your email'
+      );
+      setResetEmail('');
+      setTimeout(() => {
+        setShowForgotPassword(false);
+        setResetMessage('');
+      }, 3000);
     } catch (err) {
       // Error is handled by the context
     }
@@ -194,6 +220,18 @@ export const AuthForm: React.FC = () => {
               </div>
             )}
 
+            {!isSignUp && (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-cyan-400 hover:text-purple-400 font-rajdhani font-medium transition-colors text-sm"
+                >
+                  {language === 'ar' ? 'نسيت كلمة المرور؟' : 'FORGOT PASSWORD?'}
+                </button>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isLoading}
@@ -228,6 +266,82 @@ export const AuthForm: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Forgot Password Modal */}
+        {showForgotPassword && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div className="cyber-card rounded-2xl p-6 w-full max-w-md relative">
+              <div className="absolute inset-0 animated-border rounded-2xl"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-orbitron font-semibold text-cyan-400 neon-text">
+                    {language === 'ar' ? 'إعادة تعيين كلمة المرور' : 'RESET PASSWORD'}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setResetEmail('');
+                      setResetMessage('');
+                      clearError();
+                    }}
+                    className="cyber-btn p-2 rounded-lg text-purple-400 hover:text-cyan-400 transition-colors"
+                <p className={`text-purple-400 font-rajdhani mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
+                  {language === 'ar' 
+                    ? 'أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور'
+                    : 'Enter your email address and we\'ll send you a password reset link'
+                  }
+                </p>
+                  >
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div>
+                    <label className={`block text-sm font-rajdhani font-medium text-cyan-400 mb-2 ${language === 'ar' ? 'text-right' : ''}`}>
+                      {language === 'ar' ? 'البريد الإلكتروني' : 'EMAIL ADDRESS'}
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-400" />
+                      <input
+                        type="email"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        className="cyber-input w-full pl-10 pr-4 py-3 rounded-lg font-rajdhani"
+                        placeholder={language === 'ar' ? 'أدخل بريدك الإلكتروني' : 'Enter your email'}
+                        required
+                      />
+                    </div>
+                  </div>
+                    <X className="w-5 h-5" />
+                  {resetMessage && (
+                    <div className="p-3 cyber-card border border-green-500/50 rounded-lg">
+                      <p className={`text-sm text-green-400 font-rajdhani ${language === 'ar' ? 'text-right' : ''}`}>
+                        ✓ {resetMessage}
+                      </p>
+                    </div>
+                  )}
+                  </button>
+                  {error && (
+                    <div className="p-3 cyber-card border border-red-500/50 rounded-lg">
+                      <p className={`text-sm text-red-400 font-rajdhani ${language === 'ar' ? 'text-right' : ''}`}>
+                        ERROR: {error}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                  <button
+                    type="submit"
+                    disabled={isLoading || !resetEmail.trim()}
+                    className="w-full cyber-btn bg-gradient-to-r from-cyan-500 to-purple-600 text-white py-3 px-4 rounded-lg font-rajdhani font-medium hover:neon-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading 
+                      ? (language === 'ar' ? 'جاري الإرسال...' : 'SENDING...')
+                      : (language === 'ar' ? 'إرسال رابط الإعادة' : 'SEND RESET LINK')
+                    }
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
